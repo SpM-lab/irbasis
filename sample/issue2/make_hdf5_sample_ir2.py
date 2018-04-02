@@ -37,17 +37,17 @@ np_y = 10     # Number of polynomials for each section
 ns_y = 100    # Number of sections    
 Lambda = 100.0
 stastics = 'FERMION'
-augmented = False
+#augmented = False
 
 #dir = stastics
-topdir="/"+name
+topdir="/"+'prefix'
 h5file.create_group(topdir)
 Data_type=["/ulx", "/vly", "/sl"]
 
 # Info
 h5file[topdir+"/info/Lambda"] = Lambda
 h5file[topdir+"/info/stastics"] = stastics
-h5file[topdir+"/info/augmented"] = augmented
+#h5file[topdir+"/info/augmented"] = augmented
 h5file[topdir+"/info/dim"] = dim
 
 # sl
