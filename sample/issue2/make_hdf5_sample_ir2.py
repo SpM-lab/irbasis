@@ -51,7 +51,7 @@ h5file[topdir+"/info/stastics"] = stastics
 h5file[topdir+"/info/dim"] = dim
 
 # sl
-h5file[topdir+"/sl/data"] = numpy.zeros((dim), dtype=float)
+h5file[topdir+"/sl"] = numpy.zeros((dim), dtype=float)
 
 # ulx
 h5file[topdir+"/ulx/np"] = np_x
