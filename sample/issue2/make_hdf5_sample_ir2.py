@@ -58,10 +58,10 @@ h5file[topdir+"/ulx/np"] = np_x
 h5file[topdir+"/ulx/ns"] = ns_x
 h5file[topdir+"/ulx/data"] = numpy.zeros((dim,ns_x,np_x), dtype=float)
 
-# uly
-h5file[topdir+"/uly/np"] = np_y
-h5file[topdir+"/uly/ns"] = ns_y
-h5file[topdir+"/uly/data"] = numpy.zeros((dim,ns_y,np_y), dtype=float)
+# vly
+h5file[topdir+"/vly/np"] = np_y
+h5file[topdir+"/vly/ns"] = ns_y
+h5file[topdir+"/vly/data"] = numpy.zeros((dim,ns_y,np_y), dtype=float)
 
 sys.exit(1)
 
