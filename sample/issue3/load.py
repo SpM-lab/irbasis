@@ -6,7 +6,7 @@ class basis(object):
         with open(file_name, 'r') as f:
             self.Lambda = f['info/Lambda'].value
             self.dim = f['info/dim'].value
-            self.stastics = f['info/stastics'].value
+            self.statistics = f['info/statistics'].value
 
             self.ulx_data = f['ulx/data'].value
             assert self.ulx_data.shape[0] == self.dim

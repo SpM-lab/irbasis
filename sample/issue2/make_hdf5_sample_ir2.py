@@ -19,14 +19,14 @@ import sys
 #
 #parser.add_argument('np', type=int)
 #parser.add_argument('Lambda', type=float)
-#parser.add_argument('stastics', type=str)
+#parser.add_argument('statistics', type=str)
 #
 #args = parser.parse_args()
 h5file = h5py.File("template.h5", "w")
 
 #np = args.np
 #Lambda = args.Lambda
-#stastics = args.stastics
+#statistics = args.statistics
 
 name = "name"
 
@@ -36,17 +36,17 @@ ns_x = 100    # Number of sections
 np_y = 10     # Number of polynomials for each section
 ns_y = 100    # Number of sections    
 Lambda = 100.0
-stastics = 'FERMION'
+statistics = 'FERMION'
 #augmented = False
 
-#dir = stastics
+#dir = statistics
 topdir="/"+'prefix'
 h5file.create_group(topdir)
 Data_type=["/ulx", "/vly", "/sl"]
 
 # Info
 h5file[topdir+"/info/Lambda"] = Lambda
-h5file[topdir+"/info/stastics"] = stastics
+h5file[topdir+"/info/statistics"] = statistics
 #h5file[topdir+"/info/augmented"] = augmented
 h5file[topdir+"/info/dim"] = dim
 
