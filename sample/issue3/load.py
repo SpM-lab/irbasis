@@ -41,11 +41,25 @@ class basis(object):
         else:
             return self._interpolate(-x, self._ulx_data[l,:,:], self._ulx_section_edges) * _even_odd_sign(l)
 
+    def d_ulx(self, l, x, order):
+        if x >= 0:
+            return -self._interpolate_derivative(x, order, self._ulx_data[l,:,:], self._ulx_section_edges)
+        else:
+            return -self._interpolate_derivative(-x, order, self._ulx_data[l,:,:], self._ulx_section_edges) * _even_odd_sign(l)
+
+
     def vly(self, l, y):
         if y >= 0:
             return self._interpolate(y, self._vly_data[l,:,:], self._vly_section_edges)
         else:
             return self._interpolate(-y, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
+
+    def d_vly(self, l, y, order):
+        if y >= 0:
+            return -self._interpolate_derivative(y, order, self._vly_data[l,:,:], self._vly_section_edges)
+        else:
+            return -self._interpolate_derivative(-y, order, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
+
 
     def compute_Tnl(self):
         pass
@@ -70,7 +84,7 @@ class basis(object):
         :param section_edges:
         :return:
         """
-        section_idx = numpy.searchsorted(section_edges, x)
+        section_idx = min(numpy.searchsorted(section_edges, x)-1, len(section_edges)-1)
         coeffs = self._differentiate_coeff(data[section_idx,:], order)
         return self._interpolate_impl(x - section_edges[section_idx], coeffs)
 
@@ -96,7 +110,7 @@ class basis(object):
         :return:
         """
         k = len(coeffs)
-        coeffs_deriv = numpy.zeros_like(coeffs)
+        coeffs_deriv = numpy.array(coeffs)
         for o in range(order):
             for p in range(k-1):
                 coeffs_deriv[p] = (p+1) * coeffs_deriv[p+1]
@@ -155,7 +169,11 @@ if __name__ == '__main__':
     plt.figure(3)
     for l in [0, 1, 4, 6]:
         plt.plot(xvec, numpy.array([rb.vly(l,x) for x in xvec])/rb.vly(l,1), marker='', linestyle='-', color=colors[idx], label='l='+str(l))
-        
+
+    plt.figure(4)
+    for l in [rb.dim()-1]:
+        plt.plot(xvec, numpy.array([rb.d_vly(l,x,0) for x in xvec]), marker='', linestyle='-', color=colors[idx], label='l='+str(l))
+
     plt.figure(2)
     plt.xlabel('$x$')
     plt.ylabel('$u_l(x)$')
@@ -171,3 +189,11 @@ if __name__ == '__main__':
     plt.legend()
     plt.tight_layout()
     plt.savefig('vly.pdf')
+
+    plt.figure(4)
+    plt.xlabel('$y$')
+    plt.ylabel('$v^{(3)}_l(y)$')
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('d3_vly.pdf')
