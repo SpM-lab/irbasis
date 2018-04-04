@@ -1,6 +1,9 @@
 import numpy
 import h5py
 
+def _even_odd_sign(l):
+    return 1 if l%2==0 else -1
+
 class basis(object):
     def __init__(self, file_name):
         
@@ -33,10 +36,16 @@ class basis(object):
         return self._sl[l]
     
     def ulx(self, l, x):
-        return self._interpolate(x, self._ulx_data[l,:,:], self._ulx_section_edges)
+        if x >= 0:
+            return self._interpolate(x, self._ulx_data[l,:,:], self._ulx_section_edges)
+        else:
+            return self._interpolate(-x, self._ulx_data[l,:,:], self._ulx_section_edges) * _even_odd_sign(l)
 
     def vly(self, l, y):
-        return self._interpolate(y, self._vly_data[l,:,:], self._vly_section_edges)
+        if y >= 0:
+            return self._interpolate(y, self._vly_data[l,:,:], self._vly_section_edges)
+        else:
+            return self._interpolate(-y, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
 
     def compute_Tnl(self):
         pass
@@ -49,7 +58,7 @@ class basis(object):
         :param section_edges:
         :return:
         """
-        section_idx = numpy.searchsorted(section_edges, x)
+        section_idx = min(numpy.searchsorted(section_edges, x)-1, len(section_edges)-1)
         return self._interpolate_impl(x - section_edges[section_idx], data[section_idx,:])
 
     def _interpolate_derivative(self, x, order, data, section_edges):
@@ -121,7 +130,7 @@ if __name__ == '__main__':
         print("Input file does not exist.")
         exit(-1)
     
-    xvec = numpy.linspace(0, 1, 1000)
+    xvec = numpy.linspace(-1, 1, 1000)
     markers = ['o', 's', 'x', '+', 'v']
     ls = ['-', '--', ':']
     colors = ['r', 'b', 'g', 'k']
@@ -144,7 +153,7 @@ if __name__ == '__main__':
         plt.plot(xvec, numpy.array([rb.ulx(l,x) for x in xvec]), marker='', linestyle='-', color='r')
 
     plt.figure(3)
-    for l in [0, 4, 6]:
+    for l in [0, 1, 4, 6]:
         plt.plot(xvec, numpy.array([rb.vly(l,x) for x in xvec])/rb.vly(l,1), marker='', linestyle='-', color=colors[idx], label='l='+str(l))
         
     plt.figure(2)
