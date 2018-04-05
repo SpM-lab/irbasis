@@ -27,12 +27,12 @@ find_package(Eigen3 3.2.8 REQUIRED)
 # Build and enable tests
 # testing setup
 # enable_testing() must be called in the top-level CMakeLists.txt before any add_subdirectory() is called.
-option(Testing "Enable testing" OFF)
+option(Testing "Enable testing" ON)
 
 if (Testing)
-  include(EnableTests) #defined in ./cmake
   enable_testing(test)
+  add_subdirectory(test)
 endif()
 
-add_subdirectory(c++)
-add_subdirectory(python)
+#add_subdirectory(c++)
+#add_subdirectory(python)
