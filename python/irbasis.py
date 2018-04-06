@@ -5,29 +5,30 @@ def _even_odd_sign(l):
     return 1 if l%2==0 else -1
 
 class basis(object):
-    def __init__(self, file_name):
+    def __init__(self, file_name, prefix=""):
         
         #with open(file_name, 'r') as f:
         f = h5py.File(file_name, "r")
 
-        self._Lambda = f['info/Lambda'].value
-        self._dim = f['info/dim'].value
-        self._statistics = f['info/statistics'].value
+        self._Lambda = f[prefix+'/info/Lambda'].value
+        self._dim = f[prefix+'/info/dim'].value
+        self._statistics = f[prefix+'/info/statistics'].value
 
-        self._sl = f['sl'].value
+        self._sl = f[prefix+'/sl'].value
 
-        self._ulx_data = f['ulx/data'].value
-        self._ulx_section_edges = f['ulx/section_edges'].value
+        self._ulx_data = f[prefix+'/ulx/data'].value
+        self._ulx_section_edges = f[prefix+'/ulx/section_edges'].value
         assert self._ulx_data.shape[0] == self._dim
-        assert self._ulx_data.shape[1] == f['ulx/ns'].value
-        assert self._ulx_data.shape[2] == f['ulx/np'].value
+        assert self._ulx_data.shape[1] == f[prefix+'/ulx/ns'].value
+        assert self._ulx_data.shape[2] == f[prefix+'/ulx/np'].value
 
-        self._vly_data = f['vly/data'].value
-        self._vly_section_edges = f['vly/section_edges'].value
+        self._vly_data = f[prefix+'/vly/data'].value
+        self._vly_section_edges = f[prefix+'/vly/section_edges'].value
         assert self._vly_data.shape[0] == self._dim
-        assert self._vly_data.shape[1] == f['vly/ns'].value
-        assert self._vly_data.shape[2] == f['vly/np'].value
+        assert self._vly_data.shape[1] == f[prefix+'/vly/ns'].value
+        assert self._vly_data.shape[2] == f[prefix+'/vly/np'].value
 
+        f.close()
 
     def dim(self):
         return self._dim
@@ -135,11 +136,17 @@ if __name__ == '__main__':
                         required=True,
                         help=('Path to input file.'),
                         metavar=None)
+    parser.add_argument('-p', '--prefix', action='store', dest='prefix',
+                        type=str, choices=None,
+                        default='',
+                        help=('Data will be stored in this HF5 group.'),
+                        metavar=None)
+ 
 
     args = parser.parse_args()
 
     if os.path.exists(args.inputfile):
-        rb = basis(args.inputfile)
+        rb = basis(args.inputfile, args.prefix)
     else:
         print("Input file does not exist.")
         exit(-1)
