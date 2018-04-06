@@ -99,7 +99,6 @@ if __name__ == '__main__':
     nl = b.dim()
 
     # set info
-    print("test,", b.get_statistics())
     irset.set_info(b.Lambda(), nl, b.get_statistics())
 
     sl = np.array([b.sl(i) for i in range(0, nl)])
