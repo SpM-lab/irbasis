@@ -15,7 +15,6 @@ set(header_files ${CMAKE_SOURCE_DIR}/c++/irbasis.hpp)
 
 #testing source files
 # Copy data-base files to build directory for testing
-file(COPY ${CMAKE_SOURCE_DIR}/database DESTINATION ${CMAKE_BINARY_DIR}/c++ FILES_MATCHING  PATTERN "*.h5")
 set(unittest_src interpolation)
 foreach(test ${unittest_src})
     add_gtest(${test} ".")

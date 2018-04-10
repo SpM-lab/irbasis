@@ -39,5 +39,7 @@ for Lambda in [1000.0]:
 
     for x in sampling_points:
         # basis.ulx(x,l) return a float but it uses multi-precision math internally for interpolation.
-        print("{:.15f}".format(x), "{:.15f}".format(basis.ulx(Nl-1,x)))
+        str_x = "{:.20f}".format(x)
+        print(str_x, "{:.20f}".format(basis.ulx(Nl-1,x)))
+        print(str_x, basis.ulx_str(Nl-1,str_x))
 
