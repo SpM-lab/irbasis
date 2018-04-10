@@ -56,7 +56,7 @@ def SaveValues(Lambda, statistics):
     Nl = basis.dim()
     if Nl % 2 == 1 : Nl-=1    
     points=GetMaxAbsValue(basis, "ulx")
-    if points is not None: print("ulx: Lambda = ", Lambda, ": (x_max, ulx(x_max)) = ", points)
+    if points is not None: print("(\"ulx\", ", Lambda, ") : ", points)
     edges = numpy.array([basis.section_edge_ulx(s) for s in range(basis.num_sections_ulx()+1)])
     Region0 = numpy.linspace(edges[0], edges[1], 10)
     values0 = numpy.array( [ basis.ulx(Nl-1, _x) for _x in Region0] )
@@ -65,7 +65,7 @@ def SaveValues(Lambda, statistics):
     numpy.savetxt("output_"+statistics+"-mp-Lambda"+str(Lambda)+"_ulx.csv", [Region0, values0, Region1, values1], delimiter=',')
 
     points=GetMaxAbsValue(basis, "vly")
-    if points is not None: print("vly: Lambda = ", Lambda, ": (y_max, vly(y_max)) = ", points)
+    if points is not None: print("(\"vly\", ", Lambda, ") : ", points)
     edges = numpy.array([basis.section_edge_vly(s) for s in range(basis.num_sections_vly()+1)])
     Region0 = numpy.linspace(edges[0], edges[1], 10)
     values0 = numpy.array( [ basis.vly(Nl-1, _y) for _y in Region0] )
