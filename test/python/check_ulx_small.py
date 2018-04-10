@@ -1,6 +1,7 @@
 import unittest
 import numpy
 import irbasis as ir
+import math
 
 class TestMethods(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -46,9 +47,8 @@ class TestMethods(unittest.TestCase):
              -2.388064110517603034e+00,-2.916305900387646588e+00)]
         )
 
-        for _lambda in [10]:
-            #prefix =  "basis_f-mp-Lambda"+str(_lambda)+"_np10"
-            prefix = "test"
+        for _lambda in [10.0]:
+            prefix =  "basis_f-mp-Lambda"+str(_lambda)+"_np10"
             rb = ir.basis("../irbasis.h5", prefix)
             Nl = rb.dim()
             if Nl % 2 == 1: Nl -=1
@@ -56,8 +56,13 @@ class TestMethods(unittest.TestCase):
                 #ulx 
                 xvec = ref_ulx_f_edge[i]
                 ulxvec=numpy.array([rb.ulx(Nl-1,x) for x in xvec])
-                print(abs(ulxvec-ref_ulx_f[i])/ maxValue_ref[("ulx", 10.0)])
+                print(abs(ulxvec-ref_ulx_f[i])/ maxValue_ref[("ulx", _lambda)])
+                #self.assertLessEqual(abs(ulxvec-ref_ulx_f[i])/ maxValue_ref[("ulx", 10.0)], math.pow(10.0 , -6))
                 #vly            
+                xvec = ref_vly_f_edge[i]
+                vlyvec=numpy.array([rb.vly(Nl-1,x) for x in xvec])
+                print(abs(vlyvec-ref_vly_f[i])/ maxValue_ref[("vly", _lambda)])
+                #self.assertLessEqual(abs(vlyvec-ref_vly_f[i])/ maxValue_ref[("vly", 10.0)], math.pow(10.0 , -6))
 
     def test_small_lambda_b(self):
         maxValue_ref={            
