@@ -9,8 +9,8 @@ class TestMethods(unittest.TestCase):
 
     def test_small_lambda_f(self):
         maxValue_ref={
-            ("ulx", 10.0 ) :  (1.0, 3.4038153446392974),
-            ("vly", 10.0 ) :  (1.0, 2.9163059003876466),
+            ("ulx", 10.0 ) :  (3.4038153446392974),
+            ("vly", 10.0 ) :  (2.9163059003876466)
         }
         ref_ulx_f_edge = numpy.array(
             [(0.000000000000000000e+00,1.694476145967110936e-02,3.388952291934221872e-02,5.083428437901332808e-02,
@@ -48,24 +48,21 @@ class TestMethods(unittest.TestCase):
 
         for _lambda in [10]:
             #prefix =  "basis_f-mp-Lambda"+str(_lambda)+"_np10"
-            prefix = ""
+            prefix = "test"
             rb = ir.basis("../irbasis.h5", prefix)
             Nl = rb.dim()
             if Nl % 2 == 1: Nl -=1
-            # region near 0
-            #ulx
-            xvec = ref_ulx_f_edge[0]
-            ulxvec=numpy.array([rb.ulx(Nl-1,x) for x in xvec])
-            print(abs(ulxvec-ref_ulx_f[0])/ maxValue_ref[("ulx", 10.0)])
-            #vly
-            
-            # region near 1
-            
+            for i in range(2):
+                #ulx 
+                xvec = ref_ulx_f_edge[i]
+                ulxvec=numpy.array([rb.ulx(Nl-1,x) for x in xvec])
+                print(abs(ulxvec-ref_ulx_f[i])/ maxValue_ref[("ulx", 10.0)])
+                #vly            
 
     def test_small_lambda_b(self):
         maxValue_ref={            
-            ("ulx", 10.0 ) :  (1.0, 3.398907259691182),
-            ("vly", 10.0 ) :  (1.0, 3.050244112342474)
+            ("ulx", 10.0 ) :  (3.398907259691182),
+            ("vly", 10.0 ) :  (3.050244112342474)
         }
 
         ref_ulx_b_edge = numpy.array(

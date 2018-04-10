@@ -74,6 +74,7 @@ class basis(object):
         :return:
         """
         section_idx = min(numpy.searchsorted(section_edges, x)-1, len(section_edges)-1)
+        if section_idx < 0: section_idx = 0
         return self._interpolate_impl(x - section_edges[section_idx], data[section_idx,:])
 
     def _interpolate_derivative(self, x, order, data, section_edges):
@@ -168,9 +169,10 @@ if __name__ == '__main__':
     plt.tight_layout()
     plt.savefig('sl.pdf')
 
-    
     plt.figure(2)
     for l in [rb.dim()-1]:
+        print(rb.ulx(l,0.0))
+        exit(0)  
         plt.plot(xvec, numpy.array([rb.ulx(l,x) for x in xvec]), marker='', linestyle='-', color='r')
 
     plt.figure(3)
