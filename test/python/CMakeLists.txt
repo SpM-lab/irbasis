@@ -5,10 +5,13 @@ endfunction(add_python_test)
 
 find_package(PythonInterp REQUIRED)
 
-file(COPY ${CMAKE_SOURCE_DIR}/python/ DESTINATION ${CMAKE_BINARY_DIR}/test/python FILES_MATCHING PATTERN "*.py")
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ DESTINATION ${CMAKE_BINARY_DIR}/test/python FILES_MATCHING PATTERN "*.py")
+configure_file(${CMAKE_SOURCE_DIR}/python/irbasis.py ${CMAKE_BINARY_DIR}/test/python COPYONLY)
+file(GLOB_RECURSE TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
+foreach(testfile ${TEST_FILES})
+    configure_file(${testfile} ${CMAKE_BINARY_DIR}/test/python COPYONLY)
+endforeach()
 
-set(python_test_src interpolation)
+set(python_test_src check_ulx_Lambda10)
 foreach(test ${python_test_src})
     add_python_test(${test})
 endforeach(test)

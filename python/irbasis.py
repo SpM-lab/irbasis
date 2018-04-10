@@ -1,5 +1,6 @@
 import numpy
 import h5py
+import bisect
 
 def _even_odd_sign(l):
     return 1 if l%2==0 else -1
@@ -73,8 +74,7 @@ class basis(object):
         :param section_edges:
         :return:
         """
-        section_idx = min(numpy.searchsorted(section_edges, x)-1, len(section_edges)-1)
-        if section_idx < 0: section_idx = 0
+        section_idx = min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
         return self._interpolate_impl(x - section_edges[section_idx], data[section_idx,:])
 
     def _interpolate_derivative(self, x, order, data, section_edges):
@@ -86,7 +86,7 @@ class basis(object):
         :param section_edges:
         :return:
         """
-        section_idx = min(numpy.searchsorted(section_edges, x)-1, len(section_edges)-1)
+        section_idx = min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
         coeffs = self._differentiate_coeff(data[section_idx,:], order)
         return self._interpolate_impl(x - section_edges[section_idx], coeffs)
 
