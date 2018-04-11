@@ -147,10 +147,11 @@ class basis(object):
 
         for l in range(self.dim()):
             if l % 2 == 0:
-                result[:, l] = result[:, l].real * numpy.exp(1J * w_vec)
+                result[:, l] = result[:, l].real
             else:
-                result[:, l] = 1J * result[:, l].imag * numpy.exp(1J * w_vec)
-        result *= numpy.sqrt(2.)
+                result[:, l] = 1J * result[:, l].imag
+
+        result = numpy.einsum('w,wl->wl', numpy.sqrt(2.) * numpy.exp(1J * w_vec), result)
 
         return result
 
