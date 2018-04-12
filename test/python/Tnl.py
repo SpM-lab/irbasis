@@ -9,7 +9,7 @@ class TestMethods(unittest.TestCase):
 
     def test_Tnl(self):
         for _lambda in [10000.0]:
-            prefix =  "basis_f-mp-Lambda"+str(_lambda)+"_np10"
+            prefix = "basis_f-mp-Lambda"+str(_lambda)+"_np10"
             rf = ir.basis("../irbasis.h5", prefix)
             Tnl = rf.compute_Tnl([0,1,2])
 

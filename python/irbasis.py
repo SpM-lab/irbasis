@@ -4,14 +4,30 @@ from builtins import range
 import numpy
 import h5py
 import bisect
+import platform
+
+is_python3 = int(platform.python_version_tuple()[0]) == 3
+
+def _from_bytes_to_utf8(s):
+    """
+    from bytes to string
+    :param s:
+    :return:
+    """
+    if is_python3 and isinstance(s, bytes):
+        return s.decode('utf-8')
+    else:
+        return s
+
 
 def _even_odd_sign(l):
     return 1 if l%2==0 else -1
 
-def _compute_Tnl_high_freq(w_vec, deriv0, deriv1, x0, x1, result):
+def _compute_Tnl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
     """
     Compute Tnl by high-frequency formula
-    :param w_vec:
+    :param mask:
+    :param w_vec_org:
     :param deriv0: derivatives at x0
     :param deriv1: derivatives at x1
     :param x0: smaller end point of x
@@ -19,6 +35,8 @@ def _compute_Tnl_high_freq(w_vec, deriv0, deriv1, x0, x1, result):
     :param result:
     :return:
     """
+    w_vec = w_vec_org[mask]
+
     nw = len(w_vec)
     nl = deriv0.shape[0]
     n_deriv = deriv0.shape[1]
@@ -33,7 +51,7 @@ def _compute_Tnl_high_freq(w_vec, deriv0, deriv1, x0, x1, result):
     for k in range(n_deriv-1, -1, -1):
         jk = (coeff[k, :, :] - jk) / iw
 
-    result += jk
+    result[mask, :] += jk
 
 class basis(object):
     def __init__(self, file_name, prefix=""):
@@ -41,7 +59,7 @@ class basis(object):
         with h5py.File(file_name, 'r') as f:
             self._Lambda = f[prefix+'/info/Lambda'].value
             self._dim = f[prefix+'/info/dim'].value
-            self._statistics = f[prefix+'/info/statistics'].value
+            self._statistics = _from_bytes_to_utf8(f[prefix+'/info/statistics'].value)  # from bytes to string
 
             self._sl = f[prefix+'/sl'].value
 
@@ -65,15 +83,15 @@ class basis(object):
     
     def ulx(self, l, x):
         if x >= 0:
-            return self._interpolate(x, self._ulx_data[l,:,:], self._ulx_section_edges)
+            return self._interpolate(x, self._ulx_data[l, :, :], self._ulx_section_edges)
         else:
-            return self._interpolate(-x, self._ulx_data[l,:,:], self._ulx_section_edges) * _even_odd_sign(l)
+            return self._interpolate(-x, self._ulx_data[l, :, :], self._ulx_section_edges) * _even_odd_sign(l)
 
     def d_ulx(self, l, x, order, section=-1):
         if x >= 0:
-            return -self._interpolate_derivative(x, order, self._ulx_data[l,:,:], self._ulx_section_edges, section)
+            return self._interpolate_derivative(x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section)
         else:
-            return -self._interpolate_derivative(-x, order, self._ulx_data[l,:,:], self._ulx_section_edges, section) * _even_odd_sign(l)
+            return -self._interpolate_derivative(-x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l)
 
 
     def vly(self, l, y):
@@ -84,7 +102,7 @@ class basis(object):
 
     def d_vly(self, l, y, order):
         if y >= 0:
-            return -self._interpolate_derivative(y, order, self._vly_data[l,:,:], self._vly_section_edges)
+            return self._interpolate_derivative(y, order, self._vly_data[l,:,:], self._vly_section_edges)
         else:
             return -self._interpolate_derivative(-y, order, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
 
@@ -98,14 +116,14 @@ class basis(object):
         if isinstance(n, int):
             num_n = 1
             o_vec = 2*numpy.array([n], dtype=float)
-            if self._statistics=='F':
-                o_vec += 1
         elif isinstance(n, numpy.ndarray) or isinstance(n, list):
             num_n = len(n)
-            o_vec = 2*numpy.array(n, dtype=float) if self._statistics=='F' else 2*numpy.array(n, dtype=float)
+            o_vec = 2*numpy.array(n, dtype=float)
         else:
             raise RuntimeError("n is not an integer, list or a numpy array")
 
+        if self._statistics == 'F':
+            o_vec += 1
         w_vec = 0.5 * numpy.pi * o_vec
 
         num_deriv = self._ulx_data.shape[2]
@@ -129,7 +147,7 @@ class basis(object):
             mask = numpy.abs(w_vec) * (x1-x0) > 0.1 * numpy.pi
 
             # High frequency formula
-            _compute_Tnl_high_freq(w_vec[mask], deriv0, deriv1, x0, x1, result[mask, :])
+            _compute_Tnl_high_freq(mask, w_vec, deriv0, deriv1, x0, x1, result)
 
             # low frequency formula
             deg = 2 * num_deriv
@@ -183,7 +201,7 @@ class basis(object):
         :return:
         """
         section_idx = section if section >= 0 else min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
-        coeffs = self._differentiate_coeff(data[section_idx,:], order)
+        coeffs = self._differentiate_coeff(data[section_idx, :], order)
         return self._interpolate_impl(x - section_edges[section_idx], coeffs)
 
     def _interpolate_impl(self, dx, coeffs):
