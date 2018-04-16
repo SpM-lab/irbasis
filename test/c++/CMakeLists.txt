@@ -13,9 +13,10 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} " CACHE STRING "Linker fla
 
 set(header_files ${CMAKE_SOURCE_DIR}/c++/irbasis.hpp)
 
+configure_file(hdf5_test.h5 ${CMAKE_BINARY_DIR}/test/c++ COPYONLY)
+
 #testing source files
-# Copy data-base files to build directory for testing
-set(unittest_src interpolation)
+set(unittest_src hdf5 interpolation)
 foreach(test ${unittest_src})
     add_gtest(${test} ".")
 endforeach(test)
