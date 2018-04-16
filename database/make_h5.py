@@ -1,25 +1,20 @@
+from __future__ import print_function
+
 import os
 import argparse
-import numpy as np
+import numpy
 import h5py
 import irlib
+import scipy.integrate as integrate
+
+from mpmath import *
 
 
 class BasisSet(object):
     def __init__(self, h5file, prefix_name):
         self._h5file = h5file
         self._prefix_name = prefix_name
-
-        # Comment: No need to create group explicitly
-        # if self._prefix_name in self._h5file:
-        # del self._h5file[self._prefix_name]
-
-        # self._h5file.create_group(self._prefix_name)
-        # self._h5file.create_group(self._prefix_name+"/info")
-        # self._h5file.create_group(self._prefix_name+"/ulx")
-        # self._h5file.create_group(self._prefix_name+"/vly")
-        # self._h5file._create_group(self._prefix_name)
-
+        
     def _write_data(self, path, data):
         if path in self._h5file:
             del self._h5file[path]
@@ -30,7 +25,10 @@ class BasisSet(object):
         self._write_data(self._prefix_name + "/info/Lambda", Lambda)
         self._write_data(self._prefix_name + "/info/dim", dim)
         self._write_data(self._prefix_name + "/info/statistics", statistics)
-
+        self._dim = dim
+        self._statistics = statistics
+        self._Lambda = Lambda
+        
     def set_sl(self, sl):
         # CheckSizet
         dir = self._prefix_name
@@ -56,6 +54,73 @@ class BasisSet(object):
 
         return True
 
+    def _find_zeros(self, ulx):
+        Nx = 10000
+        eps = 1e-10
+        tvec = numpy.linspace(-3, 3, Nx) #3 is a very safe option.
+        xvec = numpy.tanh(0.5*numpy.pi*numpy.sinh(tvec))
+
+        zeros = []
+        for i in range(Nx-1):
+            if ulx(xvec[i]) * ulx(xvec[i+1]) < 0:
+                a = xvec[i+1]
+                b = xvec[i]
+                u_a = ulx(a)
+                u_b = ulx(b)
+                while a-b > eps:
+                    #print(a,b)
+                    half_point = 0.5*(a+b)
+                    if ulx(half_point) * u_a > 0:
+                        a = half_point
+                    else:
+                        b = half_point
+                        zeros.append(0.5*(a+b))
+        return numpy.array(zeros)
+
+    def _get_max_abs_value(self, l, basis,  type):
+        Nl = l
+        if type == "ulx":
+            func_l = (lambda x : basis.ulx(Nl-1,x))
+            func_l_derivative = (lambda x : basis.ulx_derivative(Nl-1,x,1))
+        elif type == "vly":
+            func_l = (lambda x : basis.vly(Nl-1,x))
+            func_l_derivative = (lambda x : basis.vly_derivative(Nl-1,x,1))
+        else:
+            return None
+        zeros_data=self._find_zeros(func_l_derivative)
+        values_zeros = numpy.array( [ abs(func_l(_x)) for _x in zeros_data] )
+        max_index = numpy.argmax(values_zeros)
+        max_point=zeros_data[max_index]
+        if abs(func_l(1.0)) > values_zeros[max_index]:
+            max_point = 1.0
+        elif abs(func_l(-1.0)) > values_zeros[max_index]:
+            max_point = -1.0
+        return (int(l), max_point,  abs(func_l(max_point)))
+
+    def save_ref_values(self, basis):
+        Nl = self._dim
+        Lambda = self._Lambda
+        statistics = self._statistics
+        dir = self._prefix_name
+ 
+        if Nl % 2 == 1 : Nl-=1    
+        #Get ulx data
+        points=self._get_max_abs_value(Nl, basis, "ulx")
+        edges = numpy.array([basis.section_edge_ulx(s) for s in range(basis.num_sections_ulx()+1)])
+        Region=numpy.append(numpy.linspace(edges[0], edges[1], 10),\
+                            numpy.linspace(edges[basis.num_sections_ulx()-1], edges[basis.num_sections_ulx()], 10))
+        ulx_data = numpy.array( [ (int(Nl), _x, basis.ulx(Nl-1, _x)) for _x in Region] )
+        self._write_data(dir+"/ulx/ref/max", data=points)
+        self._write_data(dir + "/ulx/ref/data", data=ulx_data)
+        
+        #Get vly data
+        points=self._get_max_abs_value(Nl, basis, "vly")
+        edges = numpy.array([basis.section_edge_vly(s) for s in range(basis.num_sections_vly()+1)])
+        Region = numpy.append(numpy.linspace(edges[0], edges[1], 10),\
+                              numpy.linspace(edges[basis.num_sections_vly()-1], edges[basis.num_sections_vly()], 10))
+        vly_data = numpy.array( [ (int(Nl), _y, basis.vly(Nl-1, _y)) for _y in Region] )
+        self._write_data(dir+"/vly/ref/max", data=points)
+        self._write_data(dir+"/vly/ref/data", data=vly_data)
 
 if __name__ == '__main__':
 
@@ -101,30 +166,31 @@ if __name__ == '__main__':
     # set info
     irset.set_info(b.Lambda(), nl, b.get_statistics_str())
 
-    sl = np.array([b.sl(i) for i in range(0, nl)])
+    sl = numpy.array([b.sl(i) for i in range(0, nl)])
     irset.set_sl(sl)
 
     # input ulx
     ns = b.num_sections_ulx()
     n_local_poly = b.num_local_poly_ulx()
-    coeff = np.zeros((nl, ns, n_local_poly), dtype=float)
+    coeff = numpy.zeros((nl, ns, n_local_poly), dtype=float)
     for l in range(nl):
         for s in range(ns):
             for p in range(n_local_poly):
                 coeff[l, s, p] = b.coeff_ulx(l, s, p)
-    section_edge_ulx = np.array([b.section_edge_ulx(i) for i in range(ns + 1)])
+    section_edge_ulx = numpy.array([b.section_edge_ulx(i) for i in range(ns + 1)])
     irset.set_func("ulx", coeff, n_local_poly, ns, section_edge_ulx)
 
     # input vly
     ns = b.num_sections_vly()
     n_local_poly = b.num_local_poly_vly()
-    coeff = np.zeros((nl, ns, n_local_poly), dtype=float)
+    coeff = numpy.zeros((nl, ns, n_local_poly), dtype=float)
     for l in range(nl):
         for s in range(ns):
             for p in range(n_local_poly):
                 coeff[l, s, p] = b.coeff_vly(l, s, p)
-    section_edge_vly = np.array([b.section_edge_vly(i) for i in range(ns + 1)])
+    section_edge_vly = numpy.array([b.section_edge_vly(i) for i in range(ns + 1)])
     irset.set_func("vly", coeff, n_local_poly, ns, section_edge_vly)
-
+    irset.save_ref_values(b)
+    
     h5file.flush()
     h5file.close()
