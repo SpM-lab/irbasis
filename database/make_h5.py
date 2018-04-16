@@ -77,10 +77,8 @@ class BasisSet(object):
                         zeros.append(0.5*(a+b))
         return numpy.array(zeros)
 
-    def _get_max_abs_value(self, basis, type):
-        Nl = self._dim
-        # Consider even number
-        if Nl % 2 == 1: Nl -= 1
+    def _get_max_abs_value(self, l, basis,  type):
+        Nl = l
         if type == "ulx":
             func_l = (lambda x : basis.ulx(Nl-1,x))
             func_l_derivative = (lambda x : basis.ulx_derivative(Nl-1,x,1))
@@ -97,32 +95,32 @@ class BasisSet(object):
             max_point = 1.0
         elif abs(func_l(-1.0)) > values_zeros[max_index]:
             max_point = -1.0
-        return (max_point, abs(func_l(max_point)))
+        return (int(l), max_point,  abs(func_l(max_point)))
 
     def save_ref_values(self, basis):
         Nl = self._dim
         Lambda = self._Lambda
         statistics = self._statistics
-        dir = self._prefix_name+"/ref"
+        dir = self._prefix_name
  
         if Nl % 2 == 1 : Nl-=1    
         #Get ulx data
-        points=self._get_max_abs_value(basis, "ulx")
+        points=self._get_max_abs_value(Nl, basis, "ulx")
         edges = numpy.array([basis.section_edge_ulx(s) for s in range(basis.num_sections_ulx()+1)])
         Region=numpy.append(numpy.linspace(edges[0], edges[1], 10),\
                             numpy.linspace(edges[basis.num_sections_ulx()-1], edges[basis.num_sections_ulx()], 10))
-        ulx_data = numpy.array( [ (_x, int(Nl), basis.ulx(Nl-1, _x)) for _x in Region] )
-        self._write_data(dir+"/ulx/max", data=points)
-        self._write_data(dir + "/ulx/data", data=ulx_data)
+        ulx_data = numpy.array( [ (int(Nl), _x, basis.ulx(Nl-1, _x)) for _x in Region] )
+        self._write_data(dir+"/ulx/ref/max", data=points)
+        self._write_data(dir + "/ulx/ref/data", data=ulx_data)
         
         #Get vly data
-        points=self._get_max_abs_value(basis, "vly")
+        points=self._get_max_abs_value(Nl, basis, "vly")
         edges = numpy.array([basis.section_edge_vly(s) for s in range(basis.num_sections_vly()+1)])
         Region = numpy.append(numpy.linspace(edges[0], edges[1], 10),\
                               numpy.linspace(edges[basis.num_sections_vly()-1], edges[basis.num_sections_vly()], 10))
-        vly_data = numpy.array( [ (_y, int(Nl), basis.vly(Nl-1, _y)) for _y in Region] )
-        self._write_data(dir+"/vly/max", data=points)
-        self._write_data(dir+"/vly/data", data=vly_data)
+        vly_data = numpy.array( [ (int(Nl), _y, basis.vly(Nl-1, _y)) for _y in Region] )
+        self._write_data(dir+"/vly/ref/max", data=points)
+        self._write_data(dir+"/vly/ref/data", data=vly_data)
 
 if __name__ == '__main__':
 
