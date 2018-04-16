@@ -64,17 +64,21 @@ class basis(object):
             self._sl = f[prefix+'/sl'].value
 
             self._ulx_data = f[prefix+'/ulx/data'].value
+            self._ulx_ref_max = f[prefix+'/ulx/ref/max'].value
+            self._ulx_ref_data = f[prefix+'/ulx/ref/data'].value
             self._ulx_section_edges = f[prefix+'/ulx/section_edges'].value
             assert self._ulx_data.shape[0] == self._dim
             assert self._ulx_data.shape[1] == f[prefix+'/ulx/ns'].value
             assert self._ulx_data.shape[2] == f[prefix+'/ulx/np'].value
-
+            
             self._vly_data = f[prefix+'/vly/data'].value
+            self._vly_ref_max = f[prefix+'/vly/ref/max'].value
+            self._vly_ref_data = f[prefix+'/vly/ref/data'].value
             self._vly_section_edges = f[prefix+'/vly/section_edges'].value
             assert self._vly_data.shape[0] == self._dim
             assert self._vly_data.shape[1] == f[prefix+'/vly/ns'].value
             assert self._vly_data.shape[2] == f[prefix+'/vly/np'].value
-
+            
     def dim(self):
         return self._dim
 
@@ -87,6 +91,12 @@ class basis(object):
         else:
             return self._interpolate(-x, self._ulx_data[l, :, :], self._ulx_section_edges) * _even_odd_sign(l)
 
+    def check_ulx(self):
+        ulx_max = self._ulx_ref_max[2]
+        ulx_ref = numpy.array([ (_data[0], _data[1], abs(self.ulx(int(_data[0]-1), _data[1])-_data[2])/ulx_max ) for _data in self._ulx_ref_data])
+        return(ulx_ref)
+        
+        
     def d_ulx(self, l, x, order, section=-1):
         if x >= 0:
             return self._interpolate_derivative(x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section)
@@ -100,6 +110,12 @@ class basis(object):
         else:
             return self._interpolate(-y, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
 
+    def check_vly(self):
+        vly_max = self._vly_ref_max[2]
+        vly_ref = numpy.array([ (_data[0], _data[1], abs(self.vly(int(_data[0]-1), _data[1])-_data[2])/vly_max ) for _data in self._vly_ref_data])
+        return(vly_ref)
+
+        
     def d_vly(self, l, y, order):
         if y >= 0:
             return self._interpolate_derivative(y, order, self._vly_data[l,:,:], self._vly_section_edges)
@@ -265,7 +281,10 @@ if __name__ == '__main__':
     else:
         print("Input file does not exist.")
         exit(-1)
-    
+
+    rb.check_ulx()
+    exit()
+        
     xvec = numpy.linspace(-1, 1, 1000)
     markers = ['o', 's', 'x', '+', 'v']
     ls = ['-', '--', ':']
