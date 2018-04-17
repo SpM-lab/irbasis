@@ -20,6 +20,14 @@ namespace {
         template<typename T, int DIM>
         class multi_array {
             public:
+                multi_array() : data_(0) {
+                }
+
+                multi_array(int N1) : data_(N1) {
+                    assert(DIM == 1);
+                    extents_[0] = N1;
+                }
+
                 multi_array(int N1, int N2) : data_(N1*N2) {
                     assert(DIM == 2);
                     extents_[0] = N1;
@@ -33,10 +41,36 @@ namespace {
                     extents_[2] = N3;
                 }
 
+                multi_array(int* dims) {
+                    resize(dims);
+                }
+
                 std::size_t extent(int i) const {
                     assert(i >= 0);
                     assert(i < DIM);
                     return extents_[i];
+                }
+
+                void resize(int* dims) {
+                    int tot_size = std::accumulate(dims, dims + DIM, 0);
+                    data_.resize(tot_size);
+                    for (int i=0; i<DIM; ++i) {
+                        extents_[i] = dims[i];
+                    }
+                }
+
+                T& operator()(int i) {
+                    assert (DIM == 1);
+                    int idx = i;
+                    assert(idx >= 0 && idx < data_.size());
+                    return data_[idx];
+                }
+
+                const T& operator()(int i) const {
+                    assert (DIM == 1);
+                    int idx = i;
+                    assert(idx >= 0 && idx < data_.size());
+                    return data_[idx];
                 }
 
                 T& operator()(int i, int j) {
@@ -55,14 +89,14 @@ namespace {
 
                 T& operator()(int i, int j, int k) {
                     assert (DIM == 3);
-                    int idx = extents_[1] * extents_[2] * i + extents_[2] * j + k;
+                    int idx = (i * extents_[1] +  j) * extents_[2] + k;
                     assert(idx >= 0 && idx < data_.size());
                     return data_[idx];
                 }
 
                 const T& operator()(int i, int j, int k) const {
                     assert (DIM == 3);
-                    int idx = extents_[1] * extents_[2] * i + extents_[2] * j + k;
+                    int idx = (i * extents_[1] +  j) * extents_[2] + k;
                     assert(idx >= 0 && idx < data_.size());
                     return data_[idx];
                 }
