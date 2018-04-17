@@ -58,24 +58,24 @@ TEST(hdf5, read_double_array3) {
     H5Fclose(file);
 }
 
-/*
-template<int DIM>
-struct int_helper {};
-
-template<>
-int_helper<1> {
-    static int 
+TEST(multi_array, dim2) {
+    int N1 = 2;
+    int N2 = 4;
+    internal::multi_array<double,2> array(N1, N2);
+    array(0, 0) = 0;
+    array(N1-1, N2-1) = 0;
+    ASSERT_EQ(array.extent(0), N1);
+    ASSERT_EQ(array.extent(1), N2);
 }
 
-template<class T>
-class TypedTest : public testing::Test {};
-
-typedef ::testing::Types<1, 2, 3> TestTypes;
-
-TYPED_TEST_CASE(TypedTest , TestTypes);
-
-TYPED_TEST(TypedTest, Test1)
-{
-        //TypeParam p = 0;
+TEST(multi_array, dim3) {
+    int N1 = 2;
+    int N2 = 4;
+    int N3 = 5;
+    internal::multi_array<double,3> array(N1, N2, N3);
+    array(0, 0, 0) = 0;
+    array(N1-1, N2-1, N3-1) = 0;
+    ASSERT_EQ(array.extent(0), N1);
+    ASSERT_EQ(array.extent(1), N2);
+    ASSERT_EQ(array.extent(2), N3);
 }
-*/
