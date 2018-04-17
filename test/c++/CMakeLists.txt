@@ -7,7 +7,9 @@ function(add_gtest test)
     add_test(NAME ${test} COMMAND ${test} ${test_xml_output})
 endfunction(add_gtest)
 
-list(APPEND LINK_ALL ${CMAKE_THREAD_LIBS_INIT})
+find_package(HDF5)
+
+list(APPEND LINK_ALL ${CMAKE_THREAD_LIBS_INIT} ${HDF5_C_LIBRARIES})
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} " CACHE STRING "Linker flags for executables" FORCE)
 

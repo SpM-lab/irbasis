@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8.12)
 
 # use only CXX compiler
-project (irbasis CXX)
+project (irbasis CXX C)
 
 # find additional cmake module in cmake dir
 #list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -14,10 +14,10 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 ### Dependencies
-find_package(Threads)
+#find_package(Threads)
 
 ### Eigen3
-find_package(Eigen3 3.2.8 REQUIRED)
+#find_package(Eigen3 3.2.8 REQUIRED)
 
 #include directories
 #set(EIGEN3_INCLUDE_DIR "thirdparty/eigen3")
