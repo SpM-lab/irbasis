@@ -24,9 +24,9 @@ class BasisSet(object):
     def set_info(self, Lambda, dim, statistics):
         self._write_data(self._prefix_name + "/info/Lambda", Lambda)
         self._write_data(self._prefix_name + "/info/dim", dim)
-        self._write_data(self._prefix_name + "/info/statistics", statistics)
+        self._write_data(self._prefix_name + "/info/statistics", \
+                         0 if statistics == "B" else 1)
         self._dim = dim
-        self._statistics = statistics
         self._Lambda = Lambda
         
     def set_sl(self, sl):
@@ -100,7 +100,6 @@ class BasisSet(object):
     def save_ref_values(self, basis):
         Nl = self._dim
         Lambda = self._Lambda
-        statistics = self._statistics
         dir = self._prefix_name
  
         if Nl % 2 == 1 : Nl-=1    
