@@ -30,9 +30,9 @@ class BasisSet(object):
 
     def set_tnl(self, tnl):
         dir = self._prefix_name
-        self._write_data(dir + "data/Tnl", tnl)
+        self._write_data(dir + "/data/Tnl", tnl)
         max_value = numpy.max(abs(tnl[:,1]))
-        self._write_data(dir + "data/Tnl_max", max_value)
+        self._write_data(dir + "/data/Tnl_max", max_value)
 
 if __name__ == '__main__':
 
