@@ -6,6 +6,7 @@ import numpy
 import h5py
 import platform
 import irbasis as ir
+import math
 
 is_python3 = int(platform.python_version_tuple()[0]) == 3
 
@@ -30,20 +31,14 @@ class refdata(object):
             self._statistics = _from_bytes_to_utf8(f[prefix+'/info/statistics'].value)  # from bytes to string
 
             self._Tnl_ref = f[prefix+'/data/Tnl'].value
-            self._tnl_ref_max = f[prefix+'/data/Tnl_max'].value
+            self._Tnl_ref_max = f[prefix+'/data/Tnl_max'].value
 
     def check_data(self, basis, prefix):
             rf = ir.basis("../irbasis.h5", prefix)
             ndim = rf.dim() if rf.dim()%2 ==0 else rf.dim()-1
             Tnl = rf.compute_Tnl(self._Tnl_ref[:, 0])[:, ndim-1]
-            print(Tnl, self._Tnl_ref[:,1])
-            #for _tnl_ref in self._Tnl_ref:
-             #   n=int(_tnl_ref[0])
-              #  Tnl = rf.compute_Tnl(n)
-               # print(Tnl.size)
-                
-           
-            exit(0)
+            dTnl = abs(Tnl- self._Tnl_ref[:,1])/self._Tnl_ref_max
+            return numpy.max(dTnl)
             
 class TestMethods(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -56,7 +51,7 @@ class TestMethods(unittest.TestCase):
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
                 rf_ref = refdata("../tnl_safe_ref.h5", prefix)            
                 basis = ir.basis("../irbasis.h5", prefix)
-                rf_ref.check_data(basis, prefix)
+                self.assertLessEqual(rf_ref.check_data(basis, prefix), math.pow(10.0, -8))
 
 
 
