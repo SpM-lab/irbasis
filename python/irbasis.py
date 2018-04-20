@@ -59,7 +59,7 @@ class basis(object):
         with h5py.File(file_name, 'r') as f:
             self._Lambda = f[prefix+'/info/Lambda'].value
             self._dim = f[prefix+'/info/dim'].value
-            self._statistics = _from_bytes_to_utf8(f[prefix+'/info/statistics'].value)  # from bytes to string
+            self._statistics = 'B' if f[prefix+'/info/statistics'].value == 0 else  'F'
 
             self._sl = f[prefix+'/sl'].value
 
