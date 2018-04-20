@@ -36,7 +36,7 @@ class refdata(object):
             rf = ir.basis("../irbasis.h5", prefix)
             ndim = rf.dim() if rf.dim()%2 ==0 else rf.dim()-1
             Tnl = rf.compute_Tnl(self._Tnl_ref[:, 0])[:, ndim-1]
-
+            print(Tnl, self._Tnl_ref[:,1])
             #for _tnl_ref in self._Tnl_ref:
              #   n=int(_tnl_ref[0])
               #  Tnl = rf.compute_Tnl(n)
@@ -58,7 +58,6 @@ class TestMethods(unittest.TestCase):
                 basis = ir.basis("../irbasis.h5", prefix)
                 rf_ref.check_data(basis, prefix)
 
-                #Tnl = rf.compute_Tnl(ndim-1)
 
 
 if __name__ == '__main__':
