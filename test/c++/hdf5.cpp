@@ -51,8 +51,11 @@ TEST(hdf5, read_double_array3) {
     std::vector<double> data;
     std::vector<std::size_t> extents;
     internal::hdf5_read_double_array<3>(file, std::string("/test_data/double_array3"), extents, data);
+    internal::multi_array<double,3> a = internal::load_multi_array<3>(file, std::string("/test_data/double_array3"));
     for (int i=0; i < data.size(); ++i) {
         ASSERT_EQ(data[i], i);
+        std::cout << "i " << i << " " << *(a.origin()+i) << " " << std::endl;
+        ASSERT_EQ(*(a.origin()+i), data[i]);
     }
     ASSERT_EQ(extents[0] * extents[1] * extents[2], data.size());
     H5Fclose(file);
