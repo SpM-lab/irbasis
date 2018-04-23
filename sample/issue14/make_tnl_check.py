@@ -82,6 +82,8 @@ if __name__ == '__main__':
     Nl = b.dim() if b.dim()%2==0 else b.dim()-1
     #Tnl = numpy.array([ (b.compute_Tnl_safe(int(n), Nl-1)*(n+0.5)*(n+0.5)) for n in nvec])
     #print(Tnl)
+    print(Nl)
+    print(b.ulx(0, 1), b.ulx(0, -1))
     print(b.ulx(Nl-1, 1), b.ulx(Nl-1, -1))
     #print(-(b.ulx_derivative(Nl-1, 1, 1)+b.ulx_derivative(Nl-1, -1, 1))/(numpy.pi*numpy.pi*sqrt(2.0)))
 

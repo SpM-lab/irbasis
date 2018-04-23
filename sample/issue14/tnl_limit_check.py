@@ -81,6 +81,7 @@ if __name__ == '__main__':
     nvec_long = numpy.array([10**1, 10**2, 10**3, 10**4, 10**5, 10**6, 10**7, 10**8, 10**9, 10**10])
     nvec = nvec_long
     Nl = b.dim() if b.dim()%2==0 else b.dim()-1
+    print([b.ulx_derivative(Nl-1, 1, k) for k in range(4)])
     Tnl = numpy.array([ (b.compute_Tnl_safe(int(n), Nl-1)*(n+0.5)*(n+0.5)) for n in nvec])
     print(Tnl)
     print(-(b.ulx_derivative(Nl-1, 1, 1)+b.ulx_derivative(Nl-1, -1, 1))/(numpy.pi*numpy.pi*sqrt(2.0)))
