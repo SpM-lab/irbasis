@@ -123,7 +123,7 @@ class basis(object):
             return -self._interpolate_derivative(-y, order, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
 
 
-    def compute_Tnl(self, n):
+    def compute_Tnl_imp(self, n):
         """
         Compute transformation matrix
         :param n: array-like or int   index (indices) of Matsubara frequencies
@@ -161,7 +161,7 @@ class basis(object):
 
             # Mask based on phase shift
             mask = numpy.abs(w_vec) * (x1-x0) > 0.1 * numpy.pi
-
+            
             # High frequency formula
             _compute_Tnl_high_freq(mask, w_vec, deriv0, deriv1, x0, x1, result)
 
@@ -189,6 +189,109 @@ class basis(object):
 
         return result
 
+    def compute_Tnl(self, n):
+        """
+        Compute transformation matrix
+        :param n: array-like or int   index (indices) of Matsubara frequencies
+        :return: a 2d array of results
+        """
+        if isinstance(n, int):
+            num_n = 1
+            o_vec = 2*numpy.array([n], dtype=float)
+            n_vec=numpy.array([n], dtype = float)
+        elif isinstance(n, numpy.ndarray) or isinstance(n, list):
+            num_n = len(n)
+            o_vec = 2*numpy.array(n, dtype=float)
+            n_vec=numpy.array(n, dtype = float)
+        else:
+            raise RuntimeError("n is not an integer, list or a numpy array")
+
+        if self._statistics == 'F':
+            o_vec += 1
+        w_vec = 0.5 * numpy.pi * o_vec
+
+        num_deriv = self._ulx_data.shape[2]
+
+        deriv0 = numpy.zeros((self.dim(), num_deriv), dtype=float)
+        deriv1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
+
+        result = numpy.zeros((num_n, self.dim()), dtype=complex)
+
+        num_tail = 4
+        tails = numpy.zeros((self.dim(), num_tail), dtype = complex)
+        sign_statistics = 1 if self._statistics == 'B' else -1 
+        offset = 0 if self._statistics == 'B' else 1
+                
+        #Compute Tnl
+        for s in range(self.num_sections_x()):
+            x0 = self._ulx_section_edges[s]
+            x1 = self._ulx_section_edges[s+1]
+
+            # Derivatives at end points
+            for k in range(num_deriv):
+                for l in range(self.dim()):
+                    deriv0[l, k] = self.d_ulx(l, x0, k, s)
+                    deriv1[l, k] = self.d_ulx(l, x1, k, s)
+
+            # Mask based on phase shift
+            mask = numpy.abs(w_vec) * (x1-x0) > 0.1 * numpy.pi
+            
+            # High frequency formula
+            _compute_Tnl_high_freq(mask, w_vec, deriv0, deriv1, x0, x1, result)
+
+            # low frequency formula
+            deg = 2 * num_deriv
+            x_smpl, weight = numpy.polynomial.legendre.leggauss(deg)
+            x_smpl = 0.5 * (x_smpl + 1) * (x1 - x0) + x0
+            weight *= (x1 - x0)/2
+
+            smpl_vals = numpy.zeros((deg, self.dim()))
+            for l in range(self.dim()):
+                for ix in range(deg):
+                    smpl_vals[ix, l] = self.ulx(l, x_smpl[ix])
+            mask_not = numpy.logical_not(mask)
+            exp_iwx = numpy.exp(numpy.einsum('w,x->wx', 1J * w_vec[mask_not], x_smpl))
+            result[mask_not, :] += numpy.einsum('wx,x,xl->wl', exp_iwx, weight, smpl_vals)
+
+        #restore result
+        for l in range(self.dim()):
+            if l % 2 == 0:
+                result[:, l] = result[:, l].real
+            else:
+                result[:, l] = 1J * result[:, l].imag
+
+        result = numpy.einsum('w,wl->wl', numpy.sqrt(2.) * numpy.exp(1J * w_vec), result)
+
+        
+        # Calculate tail
+        for l in range(self.dim()):
+            factor = 1J
+            for m in range(num_tail):
+                sign_lm = _even_odd_sign(l+m)
+                tails[l][m] = -numpy.sqrt(2.0) * numpy.power(2.0, m)\
+                             *factor*(sign_statistics-sign_lm)*self.d_ulx(l, 1, m)
+                factor *= 1J
+
+        # Determine for which Matsubara frequencies tail is used
+        # Store those indices in ovec
+        num_low_freq = numpy.zeros(self.dim(), dtype = int)
+        eps = numpy.power(10.0, -8)
+        for l in range(self.dim()):
+            m_low = 0 if (l+offset-1)%2 == 0 else 1
+            m_high = num_tail-2 if (l+offset-1)%2 == 0 else num_tail-1
+            wn_limit = numpy.power(eps*abs(tails[l][m_low]/tails[l][m_high]), 1.0/(m_low-m_high))
+            n_limit = 0.5 * (wn_limit/numpy.pi - offset)            
+            num_low_freq[l] = num_n-len(numpy.where(n_vec>n_limit)[0])
+        max_num_low_freq = numpy.amax(num_low_freq)
+
+        # high frequency formula
+        for l in range(self.dim()):
+            for i in range (max_num_low_freq, num_n):
+                result[i][l] = 0.0
+                for m in range(num_tail):
+                    result[i][l] += tails[l][m]/numpy.power(o_vec[i], m+1)
+        return result
+    
     def num_sections_x(self):
         return self._ulx_data.shape[1]
 
