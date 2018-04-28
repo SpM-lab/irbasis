@@ -84,6 +84,9 @@ if __name__ == '__main__':
     print([b.ulx_derivative(Nl-1, 1, k) for k in range(4)])
     Tnl = numpy.array([ (b.compute_Tnl_safe(int(n), Nl-1)*(n+0.5)*(n+0.5)) for n in nvec])
     print(Tnl)
+    for i in range(len(nvec_long)):
+        print(nvec_long[i], Tnl[i].real)
+    
     print(-(b.ulx_derivative(Nl-1, 1, 1)+b.ulx_derivative(Nl-1, -1, 1))/(numpy.pi*numpy.pi*sqrt(2.0)))
 
     
