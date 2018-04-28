@@ -23,6 +23,24 @@ def _from_bytes_to_utf8(s):
 def _even_odd_sign(l):
     return 1 if l%2==0 else -1
 
+def _compute_Tnl_tail(w_vec, stastics, deriv_x1):
+    sign_statistics = 1 if stastics == 'B' else -1
+
+    n_iw = len(w_vec)
+    Nl, num_deriv = deriv_x1.shape
+    result = numpy.zeros((n_iw, Nl), dtype=complex)
+
+    for i_iw in range(n_iw):
+        for l in range(Nl):
+            for m in range(num_deriv):
+                sign_lm = _even_odd_sign(l+m)
+                result[i_iw, l] += ((-1J * sign_statistics/w_vec[i_iw]) ** (m+1)) * (1 - sign_statistics * sign_lm) * deriv_x1[l, m]
+
+    result /= numpy.sqrt(2.0)
+
+    return result
+
+
 def _compute_Tnl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
     """
     Compute Tnl by high-frequency formula
@@ -123,7 +141,7 @@ class basis(object):
             return -self._interpolate_derivative(-y, order, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
 
 
-    def compute_Tnl_imp(self, n):
+    def compute_Tnl(self, n):
         """
         Compute transformation matrix
         :param n: array-like or int   index (indices) of Matsubara frequencies
@@ -187,14 +205,29 @@ class basis(object):
 
         result = numpy.einsum('w,wl->wl', numpy.sqrt(2.) * numpy.exp(1J * w_vec), result)
 
+        # Compute tail
+        deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
+        for k in range(num_deriv):
+            for l in range(self.dim()):
+                deriv_x1[l, k] = self.d_ulx(l, 1.0, k)
+        Tnl_tail = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1)
+        Tnl_tail_without_last_two = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1[:, :-2])
+
+        for i in range(len(n)):
+            for l in range(self.dim()):
+                if numpy.abs((Tnl_tail[i, l] - Tnl_tail_without_last_two[i, l])/Tnl_tail[i, l]) < 1e-12:
+                    #print(i, l, Tnl_tail[i, l], Tnl_tail_without_last_two[i, l], result[i, l])
+                    result[i, l] = Tnl_tail[i, l]
+
         return result
 
-    def compute_Tnl(self, n):
+    def compute_Tnl_KY(self, n):
         """
         Compute transformation matrix
         :param n: array-like or int   index (indices) of Matsubara frequencies
         :return: a 2d array of results
         """
+
         if isinstance(n, int):
             num_n = 1
             o_vec = 2*numpy.array([n], dtype=float)
@@ -253,7 +286,7 @@ class basis(object):
             exp_iwx = numpy.exp(numpy.einsum('w,x->wx', 1J * w_vec[mask_not], x_smpl))
             result[mask_not, :] += numpy.einsum('wx,x,xl->wl', exp_iwx, weight, smpl_vals)
 
-        #restore result
+        # Symmetrize result
         for l in range(self.dim()):
             if l % 2 == 0:
                 result[:, l] = result[:, l].real
@@ -262,15 +295,8 @@ class basis(object):
 
         result = numpy.einsum('w,wl->wl', numpy.sqrt(2.) * numpy.exp(1J * w_vec), result)
 
-        
         # Calculate tail
-        for l in range(self.dim()):
-            factor = 1J
-            for m in range(num_tail):
-                sign_lm = _even_odd_sign(l+m)
-                tails[l][m] = -numpy.sqrt(2.0) * numpy.power(2.0, m)\
-                             *factor*(sign_statistics-sign_lm)*self.d_ulx(l, 1, m)
-                factor *= 1J
+        result_tail = _compute_Tnl_tail(w_vec, self._statistics, deri)
 
         # Determine for which Matsubara frequencies tail is used
         # Store those indices in ovec
