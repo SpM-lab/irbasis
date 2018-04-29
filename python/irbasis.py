@@ -31,10 +31,12 @@ def _compute_Tnl_tail(w_vec, stastics, deriv_x1):
     result = numpy.zeros((n_iw, Nl), dtype=complex)
 
     for i_iw in range(n_iw):
+        if stastics == "B" and w_vec[i_iw] ==0:
+            continue
         for l in range(Nl):
             for m in range(num_deriv):
                 sign_lm = _even_odd_sign(l+m)
-                result[i_iw, l] += ((-1J * sign_statistics/w_vec[i_iw]) ** (m+1)) * (1 - sign_statistics * sign_lm) * deriv_x1[l, m]
+                result[i_iw, l] += -sign_statistics*(( 1J /w_vec[i_iw]) ** (m+1)) * (1 - sign_statistics * sign_lm) * deriv_x1[l, m]
 
     result /= numpy.sqrt(2.0)
 
