@@ -75,14 +75,14 @@ if __name__ == '__main__':
     h5file = h5py.File(args.outputfile, "a")
     irset = BasisSet(h5file, args.prefix)
     nl = b.dim()
-
     # set info
     irset.set_info(b.Lambda(), nl, b.get_statistics_str())
     nvec_short = numpy.arange(100)
     nvec_long = numpy.array([10**3, 10**4, 10**5, 10**6, 10**7, 10**8])
     nvec = numpy.append(nvec_short, nvec_long)
-    Nodd_max = b.dim()-1 if b.dim()%2==0 else b.dim()
-    Tnl_odd = numpy.array([ (int(n), b.compute_Tnl_safe(int(n), Nodd_max)) for n in nvec])    
+    Nodd_max = b.dim()-1 if b.dim()%2==0 else b.dim()-2
+    print(Nodd_max, b.dim())
+    Tnl_odd = numpy.array([ (int(n), b.compute_Tnl_safe(int(n), Nodd_max)) for n in nvec])
     irset.set_tnl(Tnl_odd, Nodd_max)
     Neven_max = b.dim()-1 if b.dim()%2==1 else b.dim()-2
     Tnl_even = numpy.array([ (int(n), b.compute_Tnl_safe(int(n), Neven_max)) for n in nvec])
