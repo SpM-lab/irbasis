@@ -85,7 +85,7 @@ class TestMethods(unittest.TestCase):
         super(TestMethods, self).__init__(*args, **kwargs)
 
     def test_Tnl(self):
-        for _lambda in [10.0, 100.0]:
+        for _lambda in [10.0, 10000.0]:
             for _statistics in ["f", "b"]:
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
                 rf_ref = refdata("../tnl_safe_ref.h5", prefix)            
