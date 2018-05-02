@@ -4,23 +4,8 @@ from builtins import range
 import unittest
 import numpy
 import h5py
-import platform
 import irbasis as ir
 import math
-
-is_python3 = int(platform.python_version_tuple()[0]) == 3
-
-def _from_bytes_to_utf8(s):
-    """
-    from bytes to string
-    :param s:
-    :return:
-    """
-    if is_python3 and isinstance(s, bytes):
-        return s.decode('utf-8')
-    else:
-        return s
-
 
 class refdata(object):
     def __init__(self, file_name, prefix=""):
@@ -28,7 +13,6 @@ class refdata(object):
         with h5py.File(file_name, 'r') as f:
             self._Lambda = f[prefix+'/info/Lambda'].value
             self._dim = f[prefix+'/info/dim'].value
-            self._statistics = _from_bytes_to_utf8(f[prefix+'/info/statistics'].value)  # from bytes to string
 
             self._Tnl_odd_ref = f[prefix+'/data/lodd/Tnl'].value
             self._Tnl_odd_ref_max = f[prefix+'/data/lodd/Tnlmax'].value
