@@ -7,18 +7,18 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-#with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    #long_description = f.read()
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 
 setup(
     name='irbasis',
 
-    version='0.1',
+    version='0.1.2',
 
     description='Python libraries for irbasis',
 
-    #long_description=long_description,  # Optional
+    long_description=long_description,
 
     long_description_content_type='text/markdown',
 
@@ -52,11 +52,11 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
 
-    keywords='quantum mony-body theory',
+    keywords='quantum many-body theory',
 
     packages = find_packages(exclude=['contrib', 'docs', 'tests']),
 
-    install_requires=['numpy', 'scipy', 'h5py'],
+    install_requires=['numpy', 'scipy', 'h5py', 'future'],
 
     package_data={
         'irbasis': ['irbasis.h5'],
