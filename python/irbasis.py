@@ -135,6 +135,8 @@ class basis(object):
         ulx_ref = numpy.array([ (_data[0], _data[1], abs(self.ulx(int(_data[0]-1), _data[1])-_data[3])/ulx_max ) for _data in self._ulx_ref_data[self._ulx_ref_data[:,2]==0]])
         return(ulx_ref)
         
+    def get_d_ulx_ref(self):
+        return self._ulx_ref_data
         
     def d_ulx(self, l, x, order, section=-1):
         if x >= 0:
@@ -148,8 +150,6 @@ class basis(object):
         else:
             return -self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l)
 
-
-
     def vly(self, l, y):
         if y >= 0:
             return self._interpolate(y, self._vly_data[l,:,:], self._vly_section_edges)
@@ -161,6 +161,8 @@ class basis(object):
         vly_ref = numpy.array([ (_data[0], _data[1], abs(self.vly(int(_data[0]-1), _data[1])-_data[3])/vly_max ) for _data in self._vly_ref_data[ self._vly_ref_data[:,2]==0]])
         return(vly_ref)
 
+    def get_d_vly_ref(self):
+        return self._vly_ref_data
         
     def d_vly(self, l, y, order):
         if y >= 0:
