@@ -132,7 +132,7 @@ class basis(object):
 
     def check_ulx(self):
         ulx_max = self._ulx_ref_max[2]
-        ulx_ref = numpy.array([ (_data[0], _data[1], abs(self.ulx(int(_data[0]-1), _data[1])-_data[2])/ulx_max ) for _data in self._ulx_ref_data])
+        ulx_ref = numpy.array([ (_data[0], _data[1], abs(self.ulx(int(_data[0]-1), _data[1])-_data[3])/ulx_max ) for _data in self._ulx_ref_data[self._ulx_ref_data[:,2]==0]])
         return(ulx_ref)
         
         
@@ -158,7 +158,7 @@ class basis(object):
 
     def check_vly(self):
         vly_max = self._vly_ref_max[2]
-        vly_ref = numpy.array([ (_data[0], _data[1], abs(self.vly(int(_data[0]-1), _data[1])-_data[2])/vly_max ) for _data in self._vly_ref_data])
+        vly_ref = numpy.array([ (_data[0], _data[1], abs(self.vly(int(_data[0]-1), _data[1])-_data[3])/vly_max ) for _data in self._vly_ref_data[ self._vly_ref_data[:,2]==0]])
         return(vly_ref)
 
         

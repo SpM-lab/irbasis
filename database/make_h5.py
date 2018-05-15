@@ -108,7 +108,9 @@ class BasisSet(object):
         edges = numpy.array([basis.section_edge_ulx(s) for s in range(basis.num_sections_ulx()+1)])
         Region=numpy.append(numpy.linspace(edges[0], edges[1], 10),\
                             numpy.linspace(edges[basis.num_sections_ulx()-1], edges[basis.num_sections_ulx()], 10))
-        ulx_data = numpy.array( [ (int(Nl), _x, basis.ulx(Nl-1, _x)) for _x in Region] )
+        ulx_data = numpy.array( [ (int(Nl), _x, 0, basis.ulx(Nl-1, _x)) for _x in Region] )
+        for _order in range(1, 3):
+            ulx_data = numpy.append(ulx_data, numpy.array( [ (int(Nl), _x, _order, basis.ulx_derivative(Nl-1, _x, _order)) for _x in Region] ), axis=0)
         self._write_data(dir+"/ulx/ref/max", data=points)
         self._write_data(dir + "/ulx/ref/data", data=ulx_data)
         
@@ -117,7 +119,9 @@ class BasisSet(object):
         edges = numpy.array([basis.section_edge_vly(s) for s in range(basis.num_sections_vly()+1)])
         Region = numpy.append(numpy.linspace(edges[0], edges[1], 10),\
                               numpy.linspace(edges[basis.num_sections_vly()-1], edges[basis.num_sections_vly()], 10))
-        vly_data = numpy.array( [ (int(Nl), _y, basis.vly(Nl-1, _y)) for _y in Region] )
+        vly_data = numpy.array( [ (int(Nl), _y, 0, basis.vly(Nl-1, _y)) for _y in Region] )
+        for _order in range(1, 3):
+            numpy.append(vly_data, numpy.array( [ (int(Nl), _y, _order, basis.vly_derivative(Nl-1, _y, _order)) for _y in Region] ), axis=0)
         self._write_data(dir+"/vly/ref/max", data=points)
         self._write_data(dir+"/vly/ref/data", data=vly_data)
 

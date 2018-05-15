@@ -10,7 +10,7 @@ class TestMethods(unittest.TestCase):
 
     def test_small_lambda_f(self):
         for _lambda in [10.0, 10000.0]:
-            prefix =  "basis_f-mp-Lambda"+str(_lambda)
+            prefix =  "basis_f-mp-Lambda"+str(_lambda)+"_np8"
             rb = ir.basis("../irbasis.h5", prefix)
             check_data_ulx = rb.check_ulx()
             for _data in check_data_ulx:
@@ -23,7 +23,7 @@ class TestMethods(unittest.TestCase):
                 
     def test_small_lambda_b(self):
         for _lambda in [10.0, 10000.0]:
-            prefix =  "basis_b-mp-Lambda"+str(_lambda)
+            prefix =  "basis_b-mp-Lambda"+str(_lambda)+"_np8"
             rb = ir.basis("../irbasis.h5", prefix)
             check_data_ulx = rb.check_ulx()
             for _data in check_data_ulx:
