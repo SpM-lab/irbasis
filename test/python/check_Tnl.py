@@ -73,7 +73,7 @@ class TestMethods(unittest.TestCase):
             for _statistics in ["f", "b"]:
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
                 rf_ref = refdata("../tnl_safe_ref.h5", prefix)            
-                basis = ir.basis("../irbasis.h5", prefix)
+                basis = ir.basis("../irbasis.h5", prefix+"_np8")
                 diff = rf_ref.check_data(basis, prefix, _statistics)
                 self.assertLessEqual(diff[0], math.pow(10.0, -8))
                 self.assertLessEqual(diff[1], math.pow(10.0, -7))
