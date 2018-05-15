@@ -52,7 +52,7 @@ namespace {
                 }
 
                 void resize(std::size_t* dims) {
-                    int tot_size = std::accumulate(dims, dims + DIM, 0);
+                    std::size_t tot_size = std::accumulate(dims, dims + DIM, 1, std::multiplies<std::size_t>());
                     data_.resize(tot_size);
                     for (int i=0; i<DIM; ++i) {
                         extents_[i] = dims[i];
@@ -160,23 +160,17 @@ namespace {
             std::vector<hsize_t> dims(DIM);
             int n_dims = H5Sget_simple_extent_dims(space, &dims[0], NULL);
             assert(n_dims == DIM);
-            std::size_t tot_size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<double>());
-            //data.resize(tot_size);
-            //extents.resize(DIM);
+            std::size_t tot_size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<std::size_t>());
             std::vector<std::size_t> extents(DIM);
             for (int i=0; i<DIM; ++i) {
                 extents[i] = static_cast<std::size_t>(dims[i]);
             }
             multi_array<double,DIM> a;
             a.resize(&extents[0]);
-            //std::copy(data.begin(), data.end(), a.origin());
             H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, a.origin());
             std::vector<double> data(tot_size);
             H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
-            for (int i=0; i < data.size(); ++i) {
-                std::cout << data[i] << std::endl;
-                std::cout << *(a.origin()+i) << std::endl;
-            }
+            multi_array<double,DIM> b = a;
             H5Dclose(dataset);
 
             return a;
