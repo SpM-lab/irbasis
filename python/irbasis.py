@@ -201,7 +201,7 @@ class basis(object):
             if self._statistics == 'B' and n[i] == 0:
                 continue
             for l in range(self.dim()):
-                if numpy.abs((Tnl_tail[i, l] - Tnl_tail_without_last_two[i, l])/Tnl_tail[i, l]) < 1e-12:
+                if numpy.abs((Tnl_tail[i, l] - Tnl_tail_without_last_two[i, l])/Tnl_tail[i, l]) < 1e-10:
                     replaced_with_tail[i, l] = 1
         mask_tail = numpy.prod(replaced_with_tail, axis=1) == 0
 
