@@ -6,6 +6,7 @@ import numpy
 import h5py
 import bisect
 import platform
+from itertools import product
 
 is_python3 = int(platform.python_version_tuple()[0]) == 3
 
@@ -31,17 +32,22 @@ def _compute_Tnl_tail(w_vec, stastics, deriv_x1):
     Nl, num_deriv = deriv_x1.shape
     result = numpy.zeros((n_iw, Nl), dtype=complex)
 
+    # coeffs_nm
+    coeffs_nm = numpy.zeros((n_iw, num_deriv,), dtype=complex)
     for i_iw in range(n_iw):
         if stastics == "B" and w_vec[i_iw] == 0:
             continue
-        for l in range(Nl):
-            for m in range(num_deriv):
-                sign_lm = _even_odd_sign(l+m)
-                result[i_iw, l] += -sign_statistics*(( 1J /w_vec[i_iw]) ** (m+1)) * (1 - sign_statistics * sign_lm) * deriv_x1[l, m]
+        fact = 1J /w_vec[i_iw]
+        coeffs_nm[i_iw, 0] = fact
+        for m in range(1, num_deriv):
+            coeffs_nm[i_iw, m] = fact * coeffs_nm[i_iw, m-1]
 
-    result /= numpy.sqrt(2.0)
+    # coeffs_lm
+    coeffs_lm = numpy.zeros((Nl, num_deriv))
+    for l, m in product(range(Nl), range(num_deriv)):
+        coeffs_lm[l, m] = (1 - sign_statistics * _even_odd_sign(l+m)) * deriv_x1[l, m]
 
-    return result
+    return -(sign_statistics/numpy.sqrt(2.0)) * numpy.einsum('ij,kj->ik', coeffs_nm, coeffs_lm)
 
 
 def _compute_Tnl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
@@ -136,6 +142,13 @@ class basis(object):
         else:
             return -self._interpolate_derivative(-x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l)
 
+    def d_ulx_all(self, l, x, section=-1):
+        if x >= 0:
+            return self._interpolate_derivatives(x, self._ulx_data[l, :, :], self._ulx_section_edges, section)
+        else:
+            return -self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l)
+
+
 
     def vly(self, l, y):
         if y >= 0:
@@ -177,38 +190,50 @@ class basis(object):
 
         num_deriv = self._ulx_data.shape[2]
 
+        # Compute tail
+        replaced_with_tail = numpy.zeros((num_n, self.dim()), dtype=int)
+        deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
+        for l in range(self.dim()):
+            deriv_x1[l, :] = self.d_ulx_all(l, 1.0)
+        Tnl_tail = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1)
+        Tnl_tail_without_last_two = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1[:, :-2])
+        for i in range(len(n)):
+            if self._statistics == 'B' and n[i] == 0:
+                continue
+            for l in range(self.dim()):
+                if numpy.abs((Tnl_tail[i, l] - Tnl_tail_without_last_two[i, l])/Tnl_tail[i, l]) < 1e-12:
+                    replaced_with_tail[i, l] = 1
+        mask_tail = numpy.prod(replaced_with_tail, axis=1) == 0
+
+        # Numerical integration
+        result = numpy.zeros((num_n, self.dim()), dtype=complex)
         deriv0 = numpy.zeros((self.dim(), num_deriv), dtype=float)
         deriv1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
-
-        result = numpy.zeros((num_n, self.dim()), dtype=complex)
-
+        deg = 2 * num_deriv
+        x_smpl_org, weight_org = numpy.polynomial.legendre.leggauss(deg)
         for s in range(self.num_sections_x()):
             x0 = self._ulx_section_edges[s]
             x1 = self._ulx_section_edges[s+1]
 
             # Derivatives at end points
-            for k in range(num_deriv):
-                for l in range(self.dim()):
-                    deriv0[l, k] = self.d_ulx(l, x0, k, s)
-                    deriv1[l, k] = self.d_ulx(l, x1, k, s)
+            for l in range(self.dim()):
+                deriv0[l, :] = self.d_ulx_all(l, x0, s)
+                deriv1[l, :] = self.d_ulx_all(l, x1, s)
 
             # Mask based on phase shift
-            mask = numpy.abs(w_vec) * (x1-x0) > 0.1 * numpy.pi
+            mask = numpy.logical_and(numpy.abs(w_vec) * (x1-x0) > 0.1 * numpy.pi, mask_tail)
             
             # High frequency formula
             _compute_Tnl_high_freq(mask, w_vec, deriv0, deriv1, x0, x1, result)
 
-            # low frequency formula
-            deg = 2 * num_deriv
-            x_smpl, weight = numpy.polynomial.legendre.leggauss(deg)
-            x_smpl = 0.5 * (x_smpl + 1) * (x1 - x0) + x0
-            weight *= (x1 - x0)/2
+            # low frequency formula (Gauss-Legendre quadrature)
+            x_smpl = 0.5 * (x_smpl_org + 1) * (x1 - x0) + x0
+            weight = weight_org * (x1 - x0)/2
 
             smpl_vals = numpy.zeros((deg, self.dim()))
-            for l in range(self.dim()):
-                for ix in range(deg):
-                    smpl_vals[ix, l] = self.ulx(l, x_smpl[ix])
-            mask_not = numpy.logical_not(mask)
+            for l, ix in product(range(self.dim()), range(deg)):
+                smpl_vals[ix, l] = self.ulx(l, x_smpl[ix])
+            mask_not = numpy.logical_and(numpy.logical_not(mask), mask_tail)
             exp_iwx = numpy.exp(numpy.einsum('w,x->wx', 1J * w_vec[mask_not], x_smpl))
             result[mask_not, :] += numpy.einsum('wx,x,xl->wl', exp_iwx, weight, smpl_vals)
 
@@ -217,23 +242,12 @@ class basis(object):
                 result[:, l] = result[:, l].real
             else:
                 result[:, l] = 1J * result[:, l].imag
-
         result = numpy.einsum('w,wl->wl', numpy.sqrt(2.) * numpy.exp(1J * w_vec), result)
 
-        # Compute tail
-        deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
-        for k in range(num_deriv):
-            for l in range(self.dim()):
-                deriv_x1[l, k] = self.d_ulx(l, 1.0, k)
-        Tnl_tail = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1)
-        Tnl_tail_without_last_two = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1[:, :-2])
-
-        for i in range(len(n)):
-            if self._statistics == 'B' and n[i] == 0:
-                continue
-            for l in range(self.dim()):
-                if numpy.abs((Tnl_tail[i, l] - Tnl_tail_without_last_two[i, l])/Tnl_tail[i, l]) < 1e-12:
-                    result[i, l] = Tnl_tail[i, l]
+        # Overwrite by tail
+        for i, l in product(range(len(n)), range(self.dim())):
+            if replaced_with_tail[i, l] == 1:
+                result[i, l] = Tnl_tail[i, l]
 
         return result
 
@@ -267,6 +281,29 @@ class basis(object):
         section_idx = section if section >= 0 else min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
         coeffs = self._differentiate_coeff(data[section_idx, :], order)
         return self._interpolate_impl(x - section_edges[section_idx], coeffs)
+
+    def _interpolate_derivatives(self, x, data, section_edges, section=-1):
+        """
+
+        :param x:
+        :param data:
+        :param section_edges:
+        :param section: the index of section. if section = -1, the index is determined by binary search
+        :return:
+        """
+        section_idx = section if section >= 0 else min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
+
+        coeffs = data[section_idx, :]
+        k = len(coeffs)
+        coeffs_deriv = numpy.array(coeffs)
+        result = numpy.zeros((k,))
+        for o in range(k):
+            result[o] = self._interpolate_impl(x - section_edges[section_idx], coeffs_deriv)
+            for p in range(k-1):
+                coeffs_deriv[p] = (p+1) * coeffs_deriv[p+1]
+            coeffs_deriv[k-1] = 0
+
+        return result
 
     def _interpolate_impl(self, dx, coeffs):
         """
