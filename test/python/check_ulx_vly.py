@@ -40,11 +40,6 @@ class TestMethods(unittest.TestCase):
             d_ulx_ref_np8 = rb_np8.get_d_ulx_ref()
             d_ulx_ref_np8_1st = d_ulx_ref_np8[d_ulx_ref_np8[:, 2] == 1][0][3]
             d_ulx_ref_np8_2nd = d_ulx_ref_np8[d_ulx_ref_np8[:, 2] == 2][0][3]
-            prefix = "basis_f-mp-Lambda" + str(_lambda) + "_np10"
-            rb_np10 = ir.basis("../irbasis.h5", prefix)
-            d_ulx_ref_np10 = rb_np10.get_d_ulx_ref()
-            d_ulx_ref_np10_1st = d_ulx_ref_np10[d_ulx_ref_np10[:, 2] == 1][0][3]
-            d_ulx_ref_np10_2nd = d_ulx_ref_np10[d_ulx_ref_np10[:, 2] == 2][0][3]
             # 1-st differential
             Nl = rb_np8.dim()
             if Nl % 2 == 1: Nl -= 1
