@@ -125,7 +125,7 @@ namespace {
         return num_elements_;
       }
 
-      bool view() const {
+      bool is_view() const {
           return !owner_;
       }
 
