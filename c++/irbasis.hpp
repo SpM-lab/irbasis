@@ -107,7 +107,7 @@ namespace {
         }
       }
 
-      multi_array<T,DIM-1> make_view(std::size_t most_left_index) {
+      multi_array<T,DIM-1> make_view(std::size_t most_left_index) const {
           multi_array<T,DIM-1> view;
           view.owner_ = false;
           std::size_t new_size = 1;
@@ -129,7 +129,7 @@ namespace {
           return !owner_;
       }
 
-      T *origin() {
+      T *origin() const {
         return p_data_;
       }
 
@@ -253,6 +253,40 @@ namespace {
       H5Dclose(dataset);
       return a;
     }
+
+    inline
+    std::size_t find_section(const multi_array<double,1> &section_edges, double x) {
+        std::size_t idx = std::upper_bound(
+                             section_edges.origin(),
+                             section_edges.origin() + section_edges.num_elements(),
+                             x) - section_edges.origin() - 1;
+
+        return std::min(idx, section_edges.num_elements()-2);
+    }
+
+    inline
+    double interpolate_impl(double dx, const multi_array<double,1>& coeffs) {
+        double value = 0.0;
+        double dx_power = 1.0;
+        std::size_t N = coeffs.num_elements();
+        for (int p=0; p < N; ++p) {
+            value += dx_power * coeffs(p);
+            dx_power *= dx;
+        }
+        return value;
+    }
+
+    inline
+    double interpolate(double x, const multi_array<double,2> &_data, const multi_array<double,1> &section_edges) {
+        std::size_t section_idx = find_section(section_edges, x);
+        return interpolate_impl(x - section_edges(section_idx), _data.make_view(section_idx));
+    }
+
+    inline
+    int even_odd_sign(const int l){
+      return (l%2==0 ? 1 : -1);
+    }
+
   }
 
   struct func {
@@ -316,22 +350,29 @@ namespace {
       return static_cast<double>(sl_(l));
     }
 
-    double ulx(int l, double x){
-      //if(x >= 0) return _interpolate(x, get_l_data(l, ulx_.data), ulx_.section_edges);
-      //else return _interpolate(-x, get_l_data(l, ulx_.data), ulx_.section_edges) * _even_odd_sign(l);
+    double ulx(int l, double x) const {
+      using namespace internal;
+      if(x >= 0) {
+          return interpolate(x, ulx_.data.make_view(l), ulx_.section_edges);
+      } else {
+          return interpolate(-x, ulx_.data.make_view(l), ulx_.section_edges) * even_odd_sign(l);
+      }
     }
 
-    double vly (int l, double y){
-      //if(y >= 0) return _interpolate(y, get_l_data(l, vly_.data), vly_.section_edges);
-      //else return _interpolate(-y, get_l_data(l, vly_.data), vly_.section_edges) * _even_odd_sign(l);
-
+    double vly (int l, double y) const {
+      using namespace internal;
+      if(y >= 0) {
+          return interpolate(y, vly_.data.make_view(l), vly_.section_edges);
+      } else {
+          return interpolate(-y, vly_.data.make_view(l), vly_.section_edges) * even_odd_sign(l);
+      }
     }
 
-    int num_sections_x(){
+    int num_sections_x() const {
       return ulx_.data.extent(1);
     }
 
-    int num_sections_y(){
+    int num_sections_y() const {
       return vly_.data.extent(1);
     }
 
@@ -346,6 +387,7 @@ namespace {
     ref ref_ulx_;
     ref ref_vly_;
 
+    /*
     internal::multi_array<double, 2> get_l_data(int l, const internal::multi_array<double, 3> &_data){
       internal::multi_array<double, 2> a(_data.extent(1), _data.extent(2));
       for (int i=0; i<_data.extent(1); i++){
@@ -353,12 +395,8 @@ namespace {
       }
       return a;
     }
+    */
 
-    int _even_odd_sign(const int l){
-      return (l%2==0 ? 1 : -1);
-    }
-
-    double _interpolate(double x, const internal::multi_array<double, 2> &_data, const internal::multi_array<int, 1> &section_edges);
 
 
   };

@@ -114,4 +114,7 @@ TEST(multi_array, sl_out) {
     for (int i=0; i<5; i++) {
         std::cout << b.sl(i) << std::endl;
     }
+
+    std::cout << b.ulx(0, 0.5) << std::endl;
+    std::cout << b.ulx(0, -0.5) << std::endl;
 }
