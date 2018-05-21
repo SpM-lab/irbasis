@@ -63,6 +63,7 @@ namespace {
 
           if (this->p_data_ != NULL) {
               delete this->p_data_;
+              this->p_data_ = NULL;
           }
 
           if (other.owner_) {
@@ -165,20 +166,28 @@ namespace {
 
     // https://www.physics.ohio-state.edu/~wilkins/computing/HDF/hdf5tutorial/examples/C/h5_rdwt.c
     // https://support.hdfgroup.org/ftp/HDF5/current/src/unpacked/examples/h5_read.c
-    // read a double
-    inline double hdf5_read_double(hid_t &file, const std::string &name) {
-      hid_t dataset = H5Dopen2(file, name.c_str(), H5P_DEFAULT);
-      double data;
-      H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data);
-      H5Dclose(dataset);
-      return data;
+    template<typename T> hid_t get_native_type();
+
+    template<>
+    inline
+    hid_t
+    get_native_type<double>() {
+        return H5T_NATIVE_DOUBLE;
     }
 
-    // read an int
-    inline int hdf5_read_int(hid_t &file, const std::string &name) {
+    template<>
+    inline
+    hid_t
+    get_native_type<int>() {
+        return H5T_NATIVE_INT;
+    }
+
+    // read a scalar
+    template<typename T>
+    T hdf5_read_scalar(hid_t &file, const std::string &name) {
       hid_t dataset = H5Dopen2(file, name.c_str(), H5P_DEFAULT);
-      int data;
-      H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data);
+      T data;
+      H5Dread(dataset, get_native_type<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, &data);
       H5Dclose(dataset);
       return data;
     }
@@ -202,10 +211,13 @@ namespace {
       H5Dclose(dataset);
     }
 
-    // read double multi_array
-    template<int DIM>
-    multi_array<double, DIM> load_multi_array(hid_t &file, const std::string &name) {
+    // read a multi_array
+    template<typename T, int DIM>
+    multi_array<T, DIM> load_multi_array(hid_t &file, const std::string &name) {
       hid_t dataset = H5Dopen2(file, name.c_str(), H5P_DEFAULT);
+      if (dataset < 0) {
+          throw std::runtime_error("Faild to open a dataset.");
+      }
       hid_t space = H5Dget_space(dataset);
       std::vector <hsize_t> dims(DIM);
       int n_dims = H5Sget_simple_extent_dims(space, &dims[0], NULL);
@@ -215,43 +227,18 @@ namespace {
       for (int i = 0; i < DIM; ++i) {
         extents[i] = static_cast<std::size_t>(dims[i]);
       }
-      multi_array<double, DIM> a;
+      multi_array<T, DIM> a;
       a.resize(&extents[0]);
-      H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, a.origin());
-      std::vector<double> data(tot_size);
-      H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
-      multi_array<double, DIM> b = a;
-      H5Dclose(dataset);
-
-      return a;
-    }
-
-    // read int multi_array
-    template<int DIM>
-    multi_array<int, DIM> load_multi_iarray(hid_t &file, const std::string &name) {
-      hid_t dataset = H5Dopen2(file, name.c_str(), H5P_DEFAULT);
-      hid_t space = H5Dget_space(dataset);
-      std::vector <hsize_t> dims(DIM);
-      int n_dims = H5Sget_simple_extent_dims(space, &dims[0], NULL);
-      assert(n_dims == DIM);
-      std::size_t tot_size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<std::size_t>());
-      std::vector <std::size_t> extents(DIM);
-      for (int i = 0; i < DIM; ++i) {
-        extents[i] = static_cast<std::size_t>(dims[i]);
-      }
-      multi_array<int, DIM> a;
-      a.resize(&extents[0]);
-      H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, a.origin());
-      std::vector<int> data(tot_size);
-      H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
-      multi_array<int, DIM> b = a;
+      H5Dread(dataset, get_native_type<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, a.origin());
+      std::vector<T> data(tot_size);
+      H5Dread(dataset, get_native_type<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
       H5Dclose(dataset);
       return a;
     }
   }
 
   struct func {
-    internal::multi_array<int, 1> section_edges;
+    internal::multi_array<double, 1> section_edges;
     internal::multi_array<double, 3> data;
     int np;
     int ns;
@@ -270,32 +257,32 @@ namespace {
     ) throw(std::runtime_error) {
       hid_t file = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
       //read info
-      Lambda_ = internal::hdf5_read_double(file, prefix + std::string("/info/Lambda"));
-      dim_ = internal::hdf5_read_int(file, prefix + std::string("/info/dim"));
-      statistics_ = internal::hdf5_read_int(file, prefix + std::string("/info/statistics")) == 0 ? "B" : "F";
+      Lambda_ = internal::hdf5_read_scalar<double>(file, prefix + std::string("/info/Lambda"));
+      dim_ = internal::hdf5_read_scalar<int>(file, prefix + std::string("/info/dim"));
+      statistics_ = internal::hdf5_read_scalar<int>(file, prefix + std::string("/info/statistics")) == 0 ? "B" : "F";
 
       //read sl
-      sl_ = internal::load_multi_array<1>(file, prefix + std::string("/sl"));
+      sl_ = internal::load_multi_array<double,1>(file, prefix + std::string("/sl"));
 
       //read ulx
-      ulx_.data = internal::load_multi_array<3>(file, prefix + std::string("/ulx/data"));
-      ulx_.np = internal::hdf5_read_int(file, prefix + std::string("/ulx/np"));
-      ulx_.ns = internal::hdf5_read_int(file, prefix + std::string("/ulx/ns"));
-      ulx_.section_edges = internal::load_multi_iarray<1>(file, prefix + std::string("/ulx/section_edges"));
+      ulx_.data = internal::load_multi_array<double,3>(file, prefix + std::string("/ulx/data"));
+      ulx_.np = internal::hdf5_read_scalar<int>(file, prefix + std::string("/ulx/np"));
+      ulx_.ns = internal::hdf5_read_scalar<int>(file, prefix + std::string("/ulx/ns"));
+      ulx_.section_edges = internal::load_multi_array<double,1>(file, prefix + std::string("/ulx/section_edges"));
 
       //read ref_ulx
-      ref_ulx_.data = internal::load_multi_array<2>(file, prefix + std::string("/ulx/ref/data"));
-      ref_ulx_.max = internal::load_multi_array<1>(file, prefix + std::string("/ulx/ref/max"));
+      ref_ulx_.data = internal::load_multi_array<double,2>(file, prefix + std::string("/ulx/ref/data"));
+      ref_ulx_.max = internal::load_multi_array<double,1>(file, prefix + std::string("/ulx/ref/max"));
 
       //read vly
-      vly_.data = internal::load_multi_array<3>(file, prefix + std::string("/vly/data"));
-      vly_.np = internal::hdf5_read_int(file, prefix + std::string("/vly/np"));
-      vly_.ns = internal::hdf5_read_int(file, prefix + std::string("/vly/ns"));
-      vly_.section_edges = internal::load_multi_iarray<1>(file, prefix + std::string("/vly/section_edges"));
+      vly_.data = internal::load_multi_array<double,3>(file, prefix + std::string("/vly/data"));
+      vly_.np = internal::hdf5_read_scalar<int>(file, prefix + std::string("/vly/np"));
+      vly_.ns = internal::hdf5_read_scalar<int>(file, prefix + std::string("/vly/ns"));
+      vly_.section_edges = internal::load_multi_array<double,1>(file, prefix + std::string("/vly/section_edges"));
 
       //read ref_vly
-      ref_vly_.data = internal::load_multi_array<2>(file, prefix + std::string("/vly/ref/data"));
-      ref_vly_.max = internal::load_multi_array<1>(file, prefix + std::string("/vly/ref/max"));
+      ref_vly_.data = internal::load_multi_array<double,2>(file, prefix + std::string("/vly/ref/data"));
+      ref_vly_.max = internal::load_multi_array<double,1>(file, prefix + std::string("/vly/ref/max"));
 
       H5Fclose(file);
     }
@@ -312,13 +299,13 @@ namespace {
     }
 
     double ulx(int l, double x){
-      if(x >= 0) return _interpolate(x, get_l_data(l, ulx_.data), ulx_.section_edges);
-      else return _interpolate(-x, get_l_data(l, ulx_.data), ulx_.section_edges) * _even_odd_sign(l);
+      //if(x >= 0) return _interpolate(x, get_l_data(l, ulx_.data), ulx_.section_edges);
+      //else return _interpolate(-x, get_l_data(l, ulx_.data), ulx_.section_edges) * _even_odd_sign(l);
     }
 
     double vly (int l, double y){
-      if(y >= 0) return _interpolate(y, get_l_data(l, vly_.data), vly_.section_edges);
-      else return _interpolate(-y, get_l_data(l, vly_.data), vly_.section_edges) * _even_odd_sign(l);
+      //if(y >= 0) return _interpolate(y, get_l_data(l, vly_.data), vly_.section_edges);
+      //else return _interpolate(-y, get_l_data(l, vly_.data), vly_.section_edges) * _even_odd_sign(l);
 
     }
 
