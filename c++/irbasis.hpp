@@ -50,7 +50,9 @@ namespace {
       }
 
       multi_array(const multi_array<T,DIM>& other) : p_data_(NULL) {
-          *this = other;
+          owner_ = true;
+          resize(&other.extents_[0]);
+          std::copy(other.origin(), other.origin()+other.num_elements(), origin());
       }
 
       ~multi_array() {
@@ -93,7 +95,7 @@ namespace {
         return extents_[i];
       }
 
-      void resize(std::size_t *dims) {
+      void resize(const std::size_t* const dims) {
         if (!owner_) {
             throw std::runtime_error("resize is not permitted for a view");
         }
@@ -280,13 +282,31 @@ namespace {
     double interpolate(double x, const multi_array<double,2> &_data, const multi_array<double,1> &section_edges) {
         std::size_t section_idx = find_section(section_edges, x);
         return interpolate_impl(x - section_edges(section_idx), _data.make_view(section_idx));
+    };
+
+    inline
+    multi_array<double,1>
+    differentiate_coeff(const multi_array<double,1>& coeffs, std::size_t order) {
+        std::size_t k = coeffs.num_elements();
+        multi_array<double,1> coeffs_deriv(coeffs);//this always make a copy
+        assert(coeffs_deriv.num_elements() == k);
+        for (int o=0; o < order; ++o) {
+            for (int p=0; p < k-1; ++p) {
+                coeffs_deriv(p) = (p+1) * coeffs_deriv(p+1);
+            }
+            coeffs_deriv(k-1) = 0;
+        }
+        return coeffs_deriv;
     }
 
     inline
     double interpolate_derivative(double x, std::size_t order, const multi_array<double,2> &_data, const multi_array<double,1> &section_edges) {
+        using namespace internal;
         std::size_t section_idx = find_section(section_edges, x);
-        return interpolate_impl(x - section_edges(section_idx), _data.make_view(section_idx));
+        multi_array<double,1> coeffs = differentiate_coeff(_data.make_view(section_idx), order);
+        return interpolate_impl(x - section_edges(section_idx), coeffs);
     }
+
 
     inline
     int even_odd_sign(const int l){

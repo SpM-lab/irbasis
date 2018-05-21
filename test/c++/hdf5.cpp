@@ -116,6 +116,8 @@ TEST(multi_array, sl_out) {
     }
     std::cout << b.ulx(0, 0.5) << std::endl;
     std::cout << b.ulx(0, -0.5) << std::endl;
+    std::cout << b.d_ulx(0, 0.5, 0) << std::endl;
+    std::cout << b.d_ulx(0, 0.5, 1) << std::endl;
 }
 
 TEST(multi_array, check_ulx_b) {
