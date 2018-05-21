@@ -176,8 +176,42 @@ namespace {
 
       return a;
     }
+
+    // read int multi_array
+    template<int DIM>
+    multi_array<int, DIM> load_multi_iarray(hid_t &file, const std::string &name) {
+      hid_t dataset = H5Dopen2(file, name.c_str(), H5P_DEFAULT);
+      hid_t space = H5Dget_space(dataset);
+      std::vector <hsize_t> dims(DIM);
+      int n_dims = H5Sget_simple_extent_dims(space, &dims[0], NULL);
+      assert(n_dims == DIM);
+      std::size_t tot_size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<std::size_t>());
+      std::vector <std::size_t> extents(DIM);
+      for (int i = 0; i < DIM; ++i) {
+        extents[i] = static_cast<std::size_t>(dims[i]);
+      }
+      multi_array<int, DIM> a;
+      a.resize(&extents[0]);
+      H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, a.origin());
+      std::vector<int> data(tot_size);
+      H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
+      multi_array<int, DIM> b = a;
+      H5Dclose(dataset);
+      return a;
+    }
   }
 
+  struct func {
+    internal::multi_array<int, 1> section_edges;
+    internal::multi_array<double, 3> data;
+    int np;
+    int ns;
+  };
+
+  struct ref {
+    internal::multi_array<double, 2> data;
+    internal::multi_array<double, 1> max;
+  };
 
   class basis {
   public:
@@ -186,11 +220,33 @@ namespace {
             const std::string &prefix = ""
     ) throw(std::runtime_error) {
       hid_t file = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-      lambda_ = internal::hdf5_read_double(file, prefix + std::string("/info/Lambda"));
+      //read info
+      Lambda_ = internal::hdf5_read_double(file, prefix + std::string("/info/Lambda"));
       dim_ = internal::hdf5_read_int(file, prefix + std::string("/info/dim"));
-      statistics_ = f[prefix + '/info/statistics'].value == 0 ? "B" : "F";
-      std::vector <std::size_t> extents;
-      internal::hdf5_read_double_array<1>(file, prefix + std::string("/sl"), extents, sl_);
+      statistics_ = internal::hdf5_read_int(file, prefix + std::string("/info/statistics")) ? "B" : "F";
+
+      //read sl
+      sl_ = internal::load_multi_array<1>(file, prefix + std::string("/sl"));
+
+      //read ulx
+      ulx_.data = internal::load_multi_array<3>(file, prefix + std::string("/ulx/data"));
+      ulx_.np = internal::hdf5_read_int(file, prefix + std::string("/ulx/np"));
+      ulx_.ns = internal::hdf5_read_int(file, prefix + std::string("/ulx/ns"));
+      ulx_.section_edges = internal::load_multi_iarray<1>(file, prefix + std::string("/ulx/section_edges"));
+
+      //read ref_ulx
+      ref_ulx_.data = internal::load_multi_array<2>(file, prefix + std::string("/ulx/ref/data"));
+      ref_ulx_.max = internal::load_multi_array<1>(file, prefix + std::string("/ulx/ref/max"));
+
+      //read vly
+      vly_.data = internal::load_multi_array<3>(file, prefix + std::string("/vly/data"));
+      vly_.np = internal::hdf5_read_int(file, prefix + std::string("/vly/np"));
+      vly_.ns = internal::hdf5_read_int(file, prefix + std::string("/vly/ns"));
+      vly_.section_edges = internal::load_multi_iarray<1>(file, prefix + std::string("/vly/section_edges"));
+
+      //read ref_vly
+      ref_vly_.data = internal::load_multi_array<2>(file, prefix + std::string("/vly/ref/data"));
+      ref_vly_.max = internal::load_multi_array<1>(file, prefix + std::string("/vly/ref/max"));
 
       H5Fclose(file);
     }
@@ -203,16 +259,18 @@ namespace {
 
     double sl(int l) const throw(std::runtime_error) {
       assert(l >= 0 && l < dim());
-      return static_cast<double>(sl_[l]);
+      return static_cast<double>(sl_(l));
     }
 
   private:
     double Lambda_;
     int dim_;
     std::string statistics_;
-    std::vector<double> sl_;
-
+    internal::multi_array<double, 1> sl_;
+    func ulx_;
+    func vly_;
+    ref ref_ulx_;
+    ref ref_vly_;
   };
 
-
-}
+};
