@@ -20,21 +20,21 @@ namespace {
     template<typename T, int DIM>
     class multi_array {
     public:
-      multi_array() : data_(0) {
+      multi_array() : owner_(true), p_data_(new std::vector<T>(0)) {
       }
 
-      multi_array(int N1) : data_(N1) {
+      multi_array(int N1) : owner_(true), p_data_(new std::vector<T>(N1)) {
         assert(DIM == 1);
         extents_[0] = N1;
       }
 
-      multi_array(int N1, int N2) : data_(N1 * N2) {
+      multi_array(int N1, int N2) : owner_(true), p_data_(new std::vector<T>(N1*N2)) {
         assert(DIM == 2);
         extents_[0] = N1;
         extents_[1] = N2;
       }
 
-      multi_array(int N1, int N2, int N3) : data_(N1 * N2 * N3) {
+      multi_array(int N1, int N2, int N3) : owner_(true), p_data_(new std::vector<T>(N1*N2*N3)) {
         assert(DIM == 3);
         extents_[0] = N1;
         extents_[1] = N2;
@@ -45,6 +45,40 @@ namespace {
         resize(dims);
       }
 
+      multi_array(const multi_array<T,DIM>& other) : p_data_(NULL) {
+          *this = other;
+      }
+
+      ~multi_array() {
+        if (this->owner_) {
+            delete p_data_;
+        }
+      }
+
+      multi_array<T,DIM>& operator=(const multi_array<T,DIM>& other) {
+          this->owner_ = other.owner_;
+          for (int i = 0; i < DIM; ++i) {
+              this->extents_[i] = other.extents_[i];
+          }
+
+          if (this->p_data_ != NULL) {
+              delete this->p_data_;
+          }
+
+          if (other.owner_) {
+              // allocate memoery and copy data
+              if (this->p_data_ == NULL) {
+                  this->p_data_ = new std::vector<T>();
+              }
+              *(this->p_data_) = *(other.p_data_);
+          } else {
+              // point to the same data
+              this->p_data_ = other.p_data_;
+          }
+
+          return *this;
+      }
+
       std::size_t extent(int i) const {
         assert(i >= 0);
         assert(i < DIM);
@@ -52,65 +86,80 @@ namespace {
       }
 
       void resize(std::size_t *dims) {
+        if (!owner_) {
+            throw std::runtime_error("reisze is not permitted for a view");
+        }
+
         std::size_t tot_size = std::accumulate(dims, dims + DIM, 1, std::multiplies<std::size_t>());
-        data_.resize(tot_size);
+        p_data_->resize(tot_size);
         for (int i = 0; i < DIM; ++i) {
           extents_[i] = dims[i];
         }
       }
 
+      /*
+      multi_array<T,DIM-1> make_view(std::size_t most_left_index) {
+          return SOMETHING;
+      }
+      */
+
       std::size_t num_elements() const {
-        return data_.size();
+        return p_data_->size();
+      }
+
+      bool view() const {
+          return !owner_;
       }
 
       T *origin() {
-        return &data_[0];
+        return &((*p_data_)[0]);
       }
 
       T &operator()(int i) {
         assert(DIM == 1);
         int idx = i;
-        assert(idx >= 0 && idx < data_.size());
-        return data_[idx];
+        assert(idx >= 0 && idx < p_data_->size());
+        return (*p_data_)[idx];
       }
 
       const T &operator()(int i) const {
         assert(DIM == 1);
         int idx = i;
-        assert(idx >= 0 && idx < data_.size());
-        return data_[idx];
+        assert(idx >= 0 && idx < p_data_->size());
+        return (*p_data_)[idx];
       }
 
       T &operator()(int i, int j) {
         assert(DIM == 2);
         int idx = extents_[1] * i + j;
-        assert(idx >= 0 && idx < data_.size());
-        return data_[idx];
+        assert(idx >= 0 && idx < p_data_->size());
+        return (*p_data_)[idx];
       }
 
       const T &operator()(int i, int j) const {
         assert(DIM == 2);
         int idx = extents_[1] * i + j;
-        assert(idx >= 0 && idx < data_.size());
-        return data_[idx];
+        assert(idx >= 0 && idx < p_data_->size());
+        return (*p_data_)[idx];
       }
 
       T &operator()(int i, int j, int k) {
         assert(DIM == 3);
         int idx = (i * extents_[1] + j) * extents_[2] + k;
-        assert(idx >= 0 && idx < data_.size());
-        return data_[idx];
+        assert(idx >= 0 && idx < p_data_->size());
+        return (*p_data_)[idx];
       }
 
       const T &operator()(int i, int j, int k) const {
         assert(DIM == 3);
         int idx = (i * extents_[1] + j) * extents_[2] + k;
-        assert(idx >= 0 && idx < data_.size());
-        return data_[idx];
+        assert(idx >= 0 && idx < p_data_->size());
+        return (*p_data_)[idx];
       }
 
     private:
-      std::vector <T> data_;
+      bool owner_;
+      std::vector<T>* p_data_;
       std::size_t extents_[DIM];
     };
 
@@ -223,7 +272,7 @@ namespace {
       //read info
       Lambda_ = internal::hdf5_read_double(file, prefix + std::string("/info/Lambda"));
       dim_ = internal::hdf5_read_int(file, prefix + std::string("/info/dim"));
-      statistics_ = internal::hdf5_read_int(file, prefix + std::string("/info/statistics")) ? "B" : "F";
+      statistics_ = internal::hdf5_read_int(file, prefix + std::string("/info/statistics")) == 0 ? "B" : "F";
 
       //read sl
       sl_ = internal::load_multi_array<1>(file, prefix + std::string("/sl"));
