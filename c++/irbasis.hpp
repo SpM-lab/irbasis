@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <complex>
-//#include <cmath>
+#include <cmath>
 #include <vector>
 #include <set>
 #include <assert.h>
@@ -363,6 +363,22 @@ namespace {
       } else {
           return interpolate(-x, ulx_.data.make_view(l), ulx_.section_edges) * even_odd_sign(l);
       }
+    }
+
+    std::vector < std::vector <double> > check_ulx() const {
+      double ulx_max = ref_ulx_.max(2);
+      std::vector < std::vector<double> > ref_data(ref_ulx_.data.extent(0));
+      int count = 0;
+      for (int i=0; i<ref_ulx_.data.extent(0); i++) {
+          if (ref_ulx_.data(i, 2) == 0) {
+            ref_data[i].push_back(ref_ulx_.data(i, 0));
+            ref_data[i].push_back(ref_ulx_.data(i, 1));
+            ref_data[i].push_back(fabs(ulx(ref_ulx_.data(i, 0)-1, ref_ulx_.data(i, 1)) - ref_ulx_.data(i, 3))/ulx_max);
+            count++;
+          }
+      }
+      ref_data.resize(count);
+      return ref_data;
     }
 
     double d_ulx(int l, double x, std::size_t order) const {
