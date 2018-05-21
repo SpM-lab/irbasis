@@ -70,14 +70,9 @@ TEST(multi_array, dim2) {
     ASSERT_EQ(array.extent(1), N2);
 }
 
-TEST(multi_array, dim3) {
-    int N1 = 2;
-    int N2 = 4;
-    int N3 = 5;
-    internal::multi_array<double,3> array(N1, N2, N3);
-    array(0, 0, 0) = 0;
-    array(N1-1, N2-1, N3-1) = 0;
-    ASSERT_EQ(array.extent(0), N1);
-    ASSERT_EQ(array.extent(1), N2);
-    ASSERT_EQ(array.extent(2), N3);
+TEST(multi_array, sl_out) {
+  basis b("../irbasis.h5", "/basis_b-mp-Lambda10.0_np10");
+    for (int i=0; i<5; i++) {
+        std::cout << b.sl(i) << std::endl;
+    }
 }
