@@ -375,6 +375,22 @@ namespace {
       return ref_data;
     }
 
+    std::vector < std::vector <double> > check_vly() const {
+      double vly_max = ref_vly_.max(2);
+      std::vector < std::vector<double> > ref_data(ref_vly_.data.extent(0));
+      int count = 0;
+      for (int i=0; i<ref_vly_.data.extent(0); i++) {
+        if (ref_vly_.data(i, 2) == 0) {
+          ref_data[i].push_back(ref_vly_.data(i, 0));
+          ref_data[i].push_back(ref_vly_.data(i, 1));
+          ref_data[i].push_back(fabs(vly(ref_vly_.data(i, 0)-1, ref_vly_.data(i, 1)) - ref_vly_.data(i, 3))/vly_max);
+          count++;
+        }
+      }
+      ref_data.resize(count);
+      return ref_data;
+    }
+
     double vly (int l, double y) const {
       using namespace internal;
       if(y >= 0) {
