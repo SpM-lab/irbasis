@@ -83,7 +83,7 @@ def _compute_Tnl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
 def load(statistics, Lambda):
     name = os.path.dirname(os.path.abspath(__file__)) 
     file_name = os.path.normpath(os.path.join(name, './irbasis.h5'))
-    prefix = "basis_f-mp-Lambda"+str(Lambda) if statistics == 'F' else "basis_b-mp-Lambda"+str(Lambda)
+    prefix = "basis_f-mp-Lambda"+str(Lambda)+"_np8" if statistics == 'F' else "basis_b-mp-Lambda"+str(Lambda)+"_np8"
 
     with h5py.File(file_name, 'r') as f:
         if not prefix in f:
@@ -142,13 +142,13 @@ class basis(object):
         if x >= 0:
             return self._interpolate_derivative(x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section)
         else:
-            return -self._interpolate_derivative(-x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l)
+            return self._interpolate_derivative(-x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
 
     def d_ulx_all(self, l, x, section=-1):
         if x >= 0:
             return self._interpolate_derivatives(x, self._ulx_data[l, :, :], self._ulx_section_edges, section)
         else:
-            return -self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l)
+            return self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
 
     def vly(self, l, y):
         if y >= 0:
@@ -168,7 +168,7 @@ class basis(object):
         if y >= 0:
             return self._interpolate_derivative(y, order, self._vly_data[l,:,:], self._vly_section_edges)
         else:
-            return -self._interpolate_derivative(-y, order, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
+            return self._interpolate_derivative(-y, order, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l + order)
 
 
     def compute_Tnl(self, n):

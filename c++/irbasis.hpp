@@ -283,6 +283,12 @@ namespace {
     }
 
     inline
+    double interpolate_derivative(double x, std::size_t order, const multi_array<double,2> &_data, const multi_array<double,1> &section_edges) {
+        std::size_t section_idx = find_section(section_edges, x);
+        return interpolate_impl(x - section_edges(section_idx), _data.make_view(section_idx));
+    }
+
+    inline
     int even_odd_sign(const int l){
       return (l%2==0 ? 1 : -1);
     }
@@ -391,12 +397,30 @@ namespace {
       return ref_data;
     }
 
+    double d_ulx(int l, double x, std::size_t order) const {
+      using namespace internal;
+      if(x >= 0) {
+          return interpolate_derivative(x, order, ulx_.data.make_view(l), ulx_.section_edges);
+      } else {
+          return interpolate_derivative(-x, order, ulx_.data.make_view(l), ulx_.section_edges) * even_odd_sign(l + order);
+      }
+    }
+
     double vly (int l, double y) const {
       using namespace internal;
       if(y >= 0) {
           return interpolate(y, vly_.data.make_view(l), vly_.section_edges);
       } else {
           return interpolate(-y, vly_.data.make_view(l), vly_.section_edges) * even_odd_sign(l);
+      }
+    }
+
+    double d_vly(int l, double y, std::size_t order) const {
+      using namespace internal;
+      if(y >= 0) {
+          return interpolate_derivative(y, order, vly_.data.make_view(l), vly_.section_edges);
+      } else {
+          return interpolate_derivative(-y, order, vly_.data.make_view(l), vly_.section_edges) * even_odd_sign(l + order);
       }
     }
 
