@@ -19,22 +19,26 @@ namespace {
     // Simple implementation without meta programming...
     template<typename T, int DIM>
     class multi_array {
+
+      template<typename T2, int DIM2>
+      friend class multi_array;
+
     public:
-      multi_array() : owner_(true), p_data_(new std::vector<T>(0)) {
+      multi_array() : owner_(true), p_data_(NULL), num_elements_(0) {
       }
 
-      multi_array(int N1) : owner_(true), p_data_(new std::vector<T>(N1)) {
+      multi_array(int N1) : owner_(true), p_data_(new T[N1]), num_elements_(N1) {
         assert(DIM == 1);
         extents_[0] = N1;
       }
 
-      multi_array(int N1, int N2) : owner_(true), p_data_(new std::vector<T>(N1*N2)) {
+      multi_array(int N1, int N2) : owner_(true), p_data_(new T[N1*N2]), num_elements_(N1*N2) {
         assert(DIM == 2);
         extents_[0] = N1;
         extents_[1] = N2;
       }
 
-      multi_array(int N1, int N2, int N3) : owner_(true), p_data_(new std::vector<T>(N1*N2*N3)) {
+      multi_array(int N1, int N2, int N3) : owner_(true), p_data_(new T[N1*N2*N3]), num_elements_(N1*N2*N3) {
         assert(DIM == 3);
         extents_[0] = N1;
         extents_[1] = N2;
@@ -51,7 +55,7 @@ namespace {
 
       ~multi_array() {
         if (this->owner_) {
-            delete p_data_;
+            delete[] p_data_;
         }
       }
 
@@ -60,18 +64,21 @@ namespace {
           for (int i = 0; i < DIM; ++i) {
               this->extents_[i] = other.extents_[i];
           }
+          this->num_elements_ = other.num_elements_;
 
           if (this->p_data_ != NULL) {
-              delete this->p_data_;
+              delete[] this->p_data_;
               this->p_data_ = NULL;
           }
 
           if (other.owner_) {
               // allocate memoery and copy data
               if (this->p_data_ == NULL) {
-                  this->p_data_ = new std::vector<T>();
+                  this->p_data_ = new T[this->num_elements_];
               }
-              *(this->p_data_) = *(other.p_data_);
+              for (int i=0; i<this->num_elements_; ++i) {
+                  *(this->p_data_+i) = *(other.p_data_+i);
+              }
           } else {
               // point to the same data
               this->p_data_ = other.p_data_;
@@ -88,24 +95,34 @@ namespace {
 
       void resize(std::size_t *dims) {
         if (!owner_) {
-            throw std::runtime_error("reisze is not permitted for a view");
+            throw std::runtime_error("resize is not permitted for a view");
         }
 
         std::size_t tot_size = std::accumulate(dims, dims + DIM, 1, std::multiplies<std::size_t>());
-        p_data_->resize(tot_size);
+        delete[] p_data_;
+        p_data_ = new T[tot_size];
+        num_elements_ = tot_size;
         for (int i = 0; i < DIM; ++i) {
           extents_[i] = dims[i];
         }
       }
 
-      /*
       multi_array<T,DIM-1> make_view(std::size_t most_left_index) {
-          return SOMETHING;
+          multi_array<T,DIM-1> view;
+          view.owner_ = false;
+          std::size_t new_size = 1;
+          for (int i=0; i<DIM-1; ++i) {
+              view.extents_[i] = this->extents_[i+1];
+              new_size *= view.extents_[i];
+          }
+          view.num_elements_ = new_size;
+          view.p_data_ = p_data_ + most_left_index * new_size;
+
+          return view;
       }
-      */
 
       std::size_t num_elements() const {
-        return p_data_->size();
+        return num_elements_;
       }
 
       bool view() const {
@@ -113,54 +130,55 @@ namespace {
       }
 
       T *origin() {
-        return &((*p_data_)[0]);
+        return p_data_;
       }
 
       T &operator()(int i) {
         assert(DIM == 1);
         int idx = i;
-        assert(idx >= 0 && idx < p_data_->size());
-        return (*p_data_)[idx];
+        assert(idx >= 0 && idx < num_elements());
+        return *(p_data_+idx);
       }
 
       const T &operator()(int i) const {
         assert(DIM == 1);
         int idx = i;
-        assert(idx >= 0 && idx < p_data_->size());
-        return (*p_data_)[idx];
+        assert(idx >= 0 && idx < num_elements());
+        return *(p_data_+idx);
       }
 
       T &operator()(int i, int j) {
         assert(DIM == 2);
         int idx = extents_[1] * i + j;
-        assert(idx >= 0 && idx < p_data_->size());
-        return (*p_data_)[idx];
+        assert(idx >= 0 && idx < num_elements());
+        return *(p_data_+idx);
       }
 
       const T &operator()(int i, int j) const {
         assert(DIM == 2);
         int idx = extents_[1] * i + j;
-        assert(idx >= 0 && idx < p_data_->size());
-        return (*p_data_)[idx];
+        assert(idx >= 0 && idx < num_elements());
+        return *(p_data_+idx);
       }
 
       T &operator()(int i, int j, int k) {
         assert(DIM == 3);
         int idx = (i * extents_[1] + j) * extents_[2] + k;
-        assert(idx >= 0 && idx < p_data_->size());
-        return (*p_data_)[idx];
+        assert(idx >= 0 && idx < num_elements());
+        return *(p_data_+idx);
       }
 
       const T &operator()(int i, int j, int k) const {
         assert(DIM == 3);
         int idx = (i * extents_[1] + j) * extents_[2] + k;
-        assert(idx >= 0 && idx < p_data_->size());
-        return (*p_data_)[idx];
+        assert(idx >= 0 && idx < num_elements());
+        return *(p_data_+idx);
       }
 
     private:
       bool owner_;
-      std::vector<T>* p_data_;
+      T* p_data_;
+      std::size_t num_elements_;
       std::size_t extents_[DIM];
     };
 

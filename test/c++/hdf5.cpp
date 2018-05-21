@@ -70,6 +70,45 @@ TEST(multi_array, dim2) {
     ASSERT_EQ(array.extent(1), N2);
 }
 
+TEST(multi_array, array2_view) {
+    int N1 = 2;
+    int N2 = 4;
+    internal::multi_array<double,2> array(N1, N2);
+
+    for (int i=0; i < N1; ++i) {
+        for (int j=0; j<N2; ++j) {
+            array(i, j) = N2 * i + j;
+        }
+    }
+
+    internal::multi_array<double,1> view = array.make_view(1);
+    for (int j=0; j<N2; ++j) {
+        ASSERT_EQ(view(j), N2+j);
+    }
+}
+
+TEST(multi_array, array3_view) {
+    int N1 = 2;
+    int N2 = 4;
+    int N3 = 8;
+    internal::multi_array<double,3> array(N1, N2, N3);
+
+    for (int i=0; i < N1; ++i) {
+        for (int j=0; j<N2; ++j) {
+            for (int k=0; k<N3; ++k) {
+                array(i, j, k) = (i*N2 + j)*N3 + k;
+            }
+        }
+    }
+
+    internal::multi_array<double,2> view = array.make_view(1);
+    for (int j=0; j<N2; ++j) {
+        for (int k=0; k<N3; ++k) {
+            ASSERT_EQ(view(j, k), array(1,j,k));
+        }
+    }
+}
+
 TEST(multi_array, sl_out) {
   basis b("../irbasis.h5", "/basis_b-mp-Lambda10.0_np10");
     for (int i=0; i<5; i++) {
