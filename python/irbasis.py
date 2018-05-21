@@ -10,18 +10,6 @@ from itertools import product
 
 is_python3 = int(platform.python_version_tuple()[0]) == 3
 
-def _from_bytes_to_utf8(s):
-    """
-    from bytes to string
-    :param s:
-    :return:
-    """
-    if is_python3 and isinstance(s, bytes):
-        return s.decode('utf-8')
-    else:
-        return s
-
-
 def _even_odd_sign(l):
     return 1 if l%2==0 else -1
 
@@ -331,9 +319,9 @@ class basis(object):
         k = len(coeffs)
         coeffs_deriv = numpy.array(coeffs)
         for o in range(order):
-            for p in range(k-1):
+            for p in range(k-1-o):
                 coeffs_deriv[p] = (p+1) * coeffs_deriv[p+1]
-            coeffs_deriv[k-1] = 0
+            coeffs_deriv[k-1-o] = 0
 
         return coeffs_deriv
 

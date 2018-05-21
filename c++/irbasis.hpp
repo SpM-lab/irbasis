@@ -206,6 +206,9 @@ namespace {
     template<typename T>
     T hdf5_read_scalar(hid_t &file, const std::string &name) {
       hid_t dataset = H5Dopen2(file, name.c_str(), H5P_DEFAULT);
+      if (dataset < 0) {
+          throw std::runtime_error("Failed to load dataset" + name);
+      }
       T data;
       H5Dread(dataset, get_native_type<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, &data);
       H5Dclose(dataset);
@@ -217,6 +220,9 @@ namespace {
     void hdf5_read_double_array(hid_t &file, const std::string &name, std::vector <std::size_t> &extents,
                                 std::vector<double> &data) {
       hid_t dataset = H5Dopen2(file, name.c_str(), H5P_DEFAULT);
+      if (dataset < 0) {
+          throw std::runtime_error("Failed to load dataset" + name);
+      }
       hid_t space = H5Dget_space(dataset);
       std::vector <hsize_t> dims(DIM);
       int n_dims = H5Sget_simple_extent_dims(space, &dims[0], NULL);
@@ -288,13 +294,13 @@ namespace {
     multi_array<double,1>
     differentiate_coeff(const multi_array<double,1>& coeffs, std::size_t order) {
         std::size_t k = coeffs.num_elements();
-        multi_array<double,1> coeffs_deriv(coeffs);//this always make a copy
+        multi_array<double,1> coeffs_deriv(coeffs);//this always makes a copy
         assert(coeffs_deriv.num_elements() == k);
         for (int o=0; o < order; ++o) {
-            for (int p=0; p < k-1; ++p) {
+            for (int p=0; p < k-1-o; ++p) {
                 coeffs_deriv(p) = (p+1) * coeffs_deriv(p+1);
             }
-            coeffs_deriv(k-1) = 0;
+            coeffs_deriv(k-1-o) = 0;
         }
         return coeffs_deriv;
     }
@@ -312,7 +318,6 @@ namespace {
     int even_odd_sign(const int l){
       return (l%2==0 ? 1 : -1);
     }
-
   }
 
   struct func {
@@ -327,6 +332,7 @@ namespace {
     internal::multi_array<double, 1> max;
   };
 
+
   class basis {
   public:
     basis(
@@ -334,6 +340,11 @@ namespace {
             const std::string &prefix = ""
     ) throw(std::runtime_error) {
       hid_t file = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+      if (file < 0) {
+          throw std::runtime_error("Failed to open " + file_name + "!");
+      }
+
       //read info
       Lambda_ = internal::hdf5_read_scalar<double>(file, prefix + std::string("/info/Lambda"));
       dim_ = internal::hdf5_read_scalar<int>(file, prefix + std::string("/info/dim"));
@@ -463,7 +474,7 @@ namespace {
     }
 
 
-  private:
+  protected:
     double Lambda_;
     int dim_;
     std::string statistics_;
@@ -472,19 +483,23 @@ namespace {
     func vly_;
     ref ref_ulx_;
     ref ref_vly_;
-
-    /*
-    internal::multi_array<double, 2> get_l_data(int l, const internal::multi_array<double, 3> &_data){
-      internal::multi_array<double, 2> a(_data.extent(1), _data.extent(2));
-      for (int i=0; i<_data.extent(1); i++){
-        for (int j=0; j<_data.extent(2); j++) a(i,j) = _data(l, i, j);
-      }
-      return a;
-    }
-    */
-
-
-
   };
+
+  inline
+  basis load(const std::string& statistics, double Lambda, const std::string& file_name="./irbasis.h5") {
+    std::stringstream ss;
+    ss << std::fixed;
+    ss << std::setprecision(1);
+    std::string prefix;
+    if (statistics == "F") {
+        prefix = "basis_f-mp-Lambda" + ss.str() + "_np8";
+    } else if (statistics == "B") {
+        prefix = "basis_b-mp-Lambda" + ss.str() + "_np8";
+    } else {
+        throw std::runtime_error("Unsupported statistics " + statistics);
+    }
+
+    return basis(file_name, prefix);
+  }
 
 };
