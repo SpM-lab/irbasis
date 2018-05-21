@@ -444,6 +444,16 @@ namespace {
       }
     }
 
+    double get_ref_ulx(std::size_t order) const {
+      double ref_data;
+      for (int i = 0; i < ref_ulx_.data.extent(0); i++) {
+        if (ref_ulx_.data(i, 2) == order) {
+          ref_data = ref_ulx_.data(i, 3);
+        }
+      }
+      return ref_data;
+    }
+
     int num_sections_x() const {
       return ulx_.data.extent(1);
     }
