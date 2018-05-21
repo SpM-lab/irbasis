@@ -110,11 +110,36 @@ TEST(multi_array, array3_view) {
 }
 
 TEST(multi_array, sl_out) {
-  basis b("../irbasis.h5", "/basis_b-mp-Lambda10.0_np10");
+  basis b("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
     for (int i=0; i<5; i++) {
         std::cout << b.sl(i) << std::endl;
     }
-
     std::cout << b.ulx(0, 0.5) << std::endl;
     std::cout << b.ulx(0, -0.5) << std::endl;
+}
+
+TEST(multi_array, check_ulx_b) {
+    basis b10("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
+    std::vector <std::vector <double> > ref_data10 = b10.check_ulx();
+    for (int i=0; i<ref_data10.size(); i++) {
+        ASSERT_LE(ref_data10[i][2], 1e-8);
+    }
+    basis b10000("../irbasis.h5", "/basis_b-mp-Lambda10000.0_np8");
+    std::vector <std::vector <double> > ref_data10000 = b10000.check_ulx();
+    for (int i=0; i<ref_data10000.size(); i++) {
+        ASSERT_LE(ref_data10000[i][2], 1e-8);
+    }
+}
+
+TEST(multi_array, check_ulx_f) {
+    basis b10("../irbasis.h5", "/basis_f-mp-Lambda10.0_np8");
+    std::vector <std::vector <double> > ref_data10 = b10.check_ulx();
+    for (int i=0; i<ref_data10.size(); i++) {
+        ASSERT_LE(ref_data10[i][2], 1e-8);
+    }
+    basis b10000("../irbasis.h5", "/basis_f-mp-Lambda10000.0_np8");
+    std::vector <std::vector <double> > ref_data10000 = b10000.check_ulx();
+    for (int i=0; i<ref_data10000.size(); i++) {
+        ASSERT_LE(ref_data10000[i][2], 1e-8);
+    }
 }
