@@ -806,6 +806,7 @@ namespace irbasis {
     ref ref_ulx_;
     ref ref_vly_;
   };
+<<<<<<< HEAD
 
   inline
   basis load(const std::string& statistics, double Lambda, const std::string& file_name="./irbasis.h5") {
