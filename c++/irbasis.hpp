@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <memory>
 #include <fstream>
+#include <iomanip>
 #include <numeric>
 
 #include <hdf5.h>
