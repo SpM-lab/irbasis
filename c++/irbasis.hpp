@@ -472,19 +472,6 @@ namespace {
     func vly_;
     ref ref_ulx_;
     ref ref_vly_;
-
-    /*
-    internal::multi_array<double, 2> get_l_data(int l, const internal::multi_array<double, 3> &_data){
-      internal::multi_array<double, 2> a(_data.extent(1), _data.extent(2));
-      for (int i=0; i<_data.extent(1); i++){
-        for (int j=0; j<_data.extent(2); j++) a(i,j) = _data(l, i, j);
-      }
-      return a;
-    }
-    */
-
-
-
   };
 
 };
