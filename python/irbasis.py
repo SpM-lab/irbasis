@@ -244,8 +244,16 @@ class basis(object):
     def num_sections_x(self):
         return self._ulx_data.shape[1]
 
+    @property
+    def section_edges_x(self):
+        return self._ulx_section_edges
+
     def num_sections_y(self):
         return self._vly_data.shape[1]
+
+    @property
+    def section_edges_y(self):
+        return self._vly_section_edges
 
     def _interpolate(self, x, data, section_edges):
         """
@@ -324,6 +332,29 @@ class basis(object):
             coeffs_deriv[k-1-o] = 0
 
         return coeffs_deriv
+
+def composite_leggauss(deg, section_edges):
+    """
+    Composite Gauss-Legendre quadrature.
+
+    :param deg: Number of sample points and weights. It must be >= 1.
+    :param section_edges: array_like
+                          1-D array of the two end points of the integral interval
+                          and breaking points in ascending order.
+    :return ndarray, ndarray: sampling points and weights
+    """
+    x_loc, w_loc = numpy.polynomial.legendre.leggauss(deg)
+
+    ns = len(section_edges)-1
+    x = []
+    w = []
+    for s in range(ns):
+        dx = section_edges[s+1] - section_edges[s]
+        x0 = section_edges[s]
+        x.extend(((dx/2)*(x_loc+1)+x0).tolist())
+        w.extend((w_loc*(dx/2)).tolist())
+
+    return numpy.array(x), numpy.array(w)
 
 if __name__ == '__main__':
     import argparse
