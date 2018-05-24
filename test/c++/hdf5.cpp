@@ -110,15 +110,3 @@ TEST(multi_array, array3_view) {
         }
     }
 }
-
-TEST(multi_array, sl_out) {
-  basis b("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
-    for (int i=0; i<5; i++) {
-        std::cout << b.sl(i) << std::endl;
-    }
-    std::cout << b.ulx(0, 0.5) << std::endl;
-    std::cout << b.ulx(0, -0.5) << std::endl;
-    std::cout << b.d_ulx(0, 0.5, 0) << std::endl;
-    std::cout << b.d_ulx(0, 0.5, 1) << std::endl;
-}
-

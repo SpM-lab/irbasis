@@ -720,14 +720,14 @@ namespace irbasis {
       sl_ = internal::load_multi_array<double,1>(file, prefix + std::string("/sl"));
 
       //read ulx
-      ulx_.load_from_h5(file, "/ulx");
+      ulx_.load_from_h5(file, prefix + "/ulx");
 
       //read ref_ulx
       ref_ulx_.data = internal::load_multi_array<double,2>(file, prefix + std::string("/ulx/ref/data"));
       ref_ulx_.max = internal::load_multi_array<double,1>(file, prefix + std::string("/ulx/ref/max"));
 
       //read vly
-      vly_.load_from_h5(file, "/vly");
+      vly_.load_from_h5(file, prefix + "/vly");
 
       //read ref_vly
       ref_vly_.data = internal::load_multi_array<double,2>(file, prefix + std::string("/vly/ref/data"));

@@ -19,6 +19,17 @@ TEST(interpolation, check_ulx_b) {
   }
 }
 
+TEST(interpolation, ulx_all_l) {
+  basis b10("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
+  int Nl = b10.dim();
+  std::vector<double> ul(Nl);
+  double x = -0.1;
+  b10.ulx_all_l(x, ul);
+  for (int l=0; l<Nl; ++l) {
+      ASSERT_NEAR(ul[l], b10.ulx(l, x), 1e-10);
+  }
+}
+
 TEST(interpolation, check_ulx_f) {
   basis b10("../irbasis.h5", "/basis_f-mp-Lambda10.0_np8");
   std::vector <std::vector <double> > ref_data10 = b10.check_ulx();
