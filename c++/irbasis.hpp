@@ -30,10 +30,10 @@ namespace irbasis {
     }
 
     template<typename T>
-    std::vector<std::pair<T, T>>
+    std::vector<std::pair<T, T> >
     gauss_legendre_nodes(int num_nodes) {
       if (num_nodes == 24) {
-        std::vector<std::pair<T, T>> nodes(24);
+        std::vector<std::pair<T, T> > nodes(24);
 
         nodes[0] = std::make_pair<T>(stoscalar<T>(
             "0.995187219997021360179997409700736811874597692596002877441600545114283832069457737883397289337115708862345346297896585399449723774571559840140935180418818945525556626616214223945236485156081678238959696729183624339135916736509873180888845542440566555836962109178057161796892504637545227856454498132057"),
@@ -137,7 +137,7 @@ namespace irbasis {
 
 
       if (num_nodes == 48) {
-        std::vector<std::pair<T, T>> nodes(48);
+        std::vector<std::pair<T, T> > nodes(48);
 
         nodes[0] = std::make_pair<T>(stoscalar<T>(
             "0.99877100725242611860054149156311364008893765027672103861294048137545884360749170001565580499814572283231113997574266671077836861467649794243019319212028649019347607287505984955678316099767987711706383847849935328474745267511929644629070475270075197317847553434244136528894767475820015496141217308957"),
@@ -662,41 +662,42 @@ namespace irbasis {
     int even_odd_sign(const int l){
       return (l%2==0 ? 1 : -1);
     }
+
+    struct func {
+      void load_from_h5(hid_t file, const std::string& prefix) {
+          data = internal::load_multi_array<double,3>(file, prefix + std::string("/data"));
+          np = internal::hdf5_read_scalar<int>(file, prefix + std::string("/np"));
+          ns = internal::hdf5_read_scalar<int>(file, prefix + std::string("/ns"));
+          nl = data.extent(0);
+          section_edges = internal::load_multi_array<double,1>(file, prefix + std::string("/section_edges"));
+
+          std::size_t extents[3];
+          extents[0] = ns;
+          extents[1] = np;
+          extents[2] = nl;
+          data_for_vec.resize(&extents[0]);
+          for (int l=0; l<nl; ++l) {
+              for (int s=0; s<ns; ++s) {
+                  for (int p=0; p<np; ++p) {
+                      data_for_vec(s, p, l) = data(l, s, p);
+                  }
+              }
+          }
+      }
+      multi_array<double, 1> section_edges;
+      multi_array<double, 3> data; //(nl, ns, np)
+      multi_array<double, 3> data_for_vec; //(ns, np, nl). Just a copy of data.
+      int np;
+      int ns;
+      int nl;
+    };
+
+    struct ref {
+      multi_array<double, 2> data;
+      multi_array<double, 1> max;
+    };
+
   }
-
-  struct func {
-    void load_from_h5(hid_t file, const std::string& prefix) {
-        data = internal::load_multi_array<double,3>(file, prefix + std::string("/data"));
-        np = internal::hdf5_read_scalar<int>(file, prefix + std::string("/np"));
-        ns = internal::hdf5_read_scalar<int>(file, prefix + std::string("/ns"));
-        nl = data.extent(0);
-        section_edges = internal::load_multi_array<double,1>(file, prefix + std::string("/section_edges"));
-
-        std::size_t extents[3];
-        extents[0] = ns;
-        extents[1] = np;
-        extents[2] = nl;
-        data_for_vec.resize(&extents[0]);
-        for (int l=0; l<nl; ++l) {
-            for (int s=0; s<ns; ++s) {
-                for (int p=0; p<np; ++p) {
-                    data_for_vec(s, p, l) = data(l, s, p);
-                }
-            }
-        }
-    }
-    internal::multi_array<double, 1> section_edges;
-    internal::multi_array<double, 3> data; //(nl, ns, np)
-    internal::multi_array<double, 3> data_for_vec; //(ns, np, nl). Just a copy of data.
-    int np;
-    int ns;
-    int nl;
-  };
-
-  struct ref {
-    internal::multi_array<double, 2> data;
-    internal::multi_array<double, 1> max;
-  };
 
 
   class basis {
@@ -859,10 +860,10 @@ namespace irbasis {
     int dim_;
     std::string statistics_;
     internal::multi_array<double, 1> sl_;
-    func ulx_;
-    func vly_;
-    ref ref_ulx_;
-    ref ref_vly_;
+    internal::func ulx_;
+    internal::func vly_;
+    internal::ref ref_ulx_;
+    internal::ref ref_vly_;
   };
 
   inline
