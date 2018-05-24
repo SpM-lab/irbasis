@@ -3,6 +3,8 @@
 #include "gtest.h"
 #include "../../c++/irbasis.hpp"
 
+using namespace irbasis;
+
 TEST(hdf5, read_double) {
     std::string file_name("hdf5_test.h5");
     hid_t file = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);

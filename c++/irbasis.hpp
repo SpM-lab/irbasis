@@ -8,11 +8,12 @@
 #include <assert.h>
 #include <memory>
 #include <fstream>
+#include <iomanip>
 #include <numeric>
 
 #include <hdf5.h>
 
-namespace {
+namespace irbasis {
 
   namespace internal {
 
@@ -285,9 +286,31 @@ namespace {
     }
 
     inline
+    void interpolate_all_l_impl(double dx, const multi_array<double,2>& coeffs, std::vector<double>& result) {
+        assert(result.size() == coeffs.extent(1));
+        std::fill(result.begin(), result.end(), 0.0);
+        double dx_power = 1.0;
+        std::size_t N = coeffs.extent(0);
+        std::size_t dim = coeffs.extent(1);
+        for (int p=0; p < N; ++p) {
+            for (int l=0; l < dim; ++l) {
+                result[l] += dx_power * coeffs(p, l);
+            }
+            dx_power *= dx;
+        }
+    }
+
+    inline
     double interpolate(double x, const multi_array<double,2> &_data, const multi_array<double,1> &section_edges) {
         std::size_t section_idx = find_section(section_edges, x);
         return interpolate_impl(x - section_edges(section_idx), _data.make_view(section_idx));
+    };
+
+    inline
+    void interpolate_all_l(double x, const multi_array<double,3> &_data,
+                           const multi_array<double,1> &section_edges, std::vector<double>& result) {
+        std::size_t section_idx = find_section(section_edges, x);
+        return interpolate_all_l_impl(x - section_edges(section_idx), _data.make_view(section_idx), result);
     };
 
     inline
@@ -321,10 +344,32 @@ namespace {
   }
 
   struct func {
+    void load_from_h5(hid_t file, const std::string& prefix) {
+        data = internal::load_multi_array<double,3>(file, prefix + std::string("/data"));
+        np = internal::hdf5_read_scalar<int>(file, prefix + std::string("/np"));
+        ns = internal::hdf5_read_scalar<int>(file, prefix + std::string("/ns"));
+        nl = data.extent(0);
+        section_edges = internal::load_multi_array<double,1>(file, prefix + std::string("/section_edges"));
+
+        std::size_t extents[3];
+        extents[0] = ns;
+        extents[1] = np;
+        extents[2] = nl;
+        data_for_vec.resize(&extents[0]);
+        for (int l=0; l<nl; ++l) {
+            for (int s=0; s<ns; ++s) {
+                for (int p=0; p<np; ++p) {
+                    data_for_vec(s, p, l) = data(l, s, p);
+                }
+            }
+        }
+    }
     internal::multi_array<double, 1> section_edges;
-    internal::multi_array<double, 3> data;
+    internal::multi_array<double, 3> data; //(nl, ns, np)
+    internal::multi_array<double, 3> data_for_vec; //(ns, np, nl). Just a copy of data.
     int np;
     int ns;
+    int nl;
   };
 
   struct ref {
@@ -354,20 +399,14 @@ namespace {
       sl_ = internal::load_multi_array<double,1>(file, prefix + std::string("/sl"));
 
       //read ulx
-      ulx_.data = internal::load_multi_array<double,3>(file, prefix + std::string("/ulx/data"));
-      ulx_.np = internal::hdf5_read_scalar<int>(file, prefix + std::string("/ulx/np"));
-      ulx_.ns = internal::hdf5_read_scalar<int>(file, prefix + std::string("/ulx/ns"));
-      ulx_.section_edges = internal::load_multi_array<double,1>(file, prefix + std::string("/ulx/section_edges"));
+      ulx_.load_from_h5(file, "/ulx");
 
       //read ref_ulx
       ref_ulx_.data = internal::load_multi_array<double,2>(file, prefix + std::string("/ulx/ref/data"));
       ref_ulx_.max = internal::load_multi_array<double,1>(file, prefix + std::string("/ulx/ref/max"));
 
       //read vly
-      vly_.data = internal::load_multi_array<double,3>(file, prefix + std::string("/vly/data"));
-      vly_.np = internal::hdf5_read_scalar<int>(file, prefix + std::string("/vly/np"));
-      vly_.ns = internal::hdf5_read_scalar<int>(file, prefix + std::string("/vly/ns"));
-      vly_.section_edges = internal::load_multi_array<double,1>(file, prefix + std::string("/vly/section_edges"));
+      vly_.load_from_h5(file, "/vly");
 
       //read ref_vly
       ref_vly_.data = internal::load_multi_array<double,2>(file, prefix + std::string("/vly/ref/data"));
@@ -393,6 +432,17 @@ namespace {
           return interpolate(x, ulx_.data.make_view(l), ulx_.section_edges);
       } else {
           return interpolate(-x, ulx_.data.make_view(l), ulx_.section_edges) * even_odd_sign(l);
+      }
+    }
+
+    void ulx_all_l(double x, std::vector<double>& ulx_result) const {
+      using namespace internal;
+      ulx_result.resize(ulx_.nl);
+      interpolate_all_l(std::abs(x), ulx_.data_for_vec, ulx_.section_edges, ulx_result);
+      if(x < 0) {
+        for (int l=1; l<ulx_.nl; l +=2) {
+            ulx_result[l] *= -1;
+        }
       }
     }
 
@@ -469,10 +519,19 @@ namespace {
       return ulx_.data.extent(1);
     }
 
+    double section_edge_x(std::size_t index) const {
+        assert(index >= 0 && index <= num_sections_x());
+        return ulx_.section_edges(index);
+    }
+
     int num_sections_y() const {
       return vly_.data.extent(1);
     }
 
+    double section_edge_y(std::size_t index) const {
+      assert(index >= 0 && index <= num_sections_y());
+      return vly_.section_edges(index);
+    }
 
   protected:
     double Lambda_;
@@ -490,6 +549,7 @@ namespace {
     std::stringstream ss;
     ss << std::fixed;
     ss << std::setprecision(1);
+    ss << Lambda;
     std::string prefix;
     if (statistics == "F") {
         prefix = "basis_f-mp-Lambda" + ss.str() + "_np8";
