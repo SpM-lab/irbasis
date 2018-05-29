@@ -90,7 +90,8 @@ class basis(object):
 
             self._sl = f[prefix+'/sl'].value
 
-            self._ulx_data = f[prefix+'/ulx/data'].value
+            self._ulx_data = f[prefix+'/ulx/data'].value # (l, section, p)
+            self._ulx_data_for_vec = self._ulx_data.transpose((1, 2, 0)) # (section, p, l)
             self._ulx_ref_max = f[prefix+'/ulx/ref/max'].value
             self._ulx_ref_data = f[prefix+'/ulx/ref/data'].value
             self._ulx_section_edges = f[prefix+'/ulx/section_edges'].value
@@ -117,6 +118,13 @@ class basis(object):
             return self._interpolate(x, self._ulx_data[l, :, :], self._ulx_section_edges)
         else:
             return self._interpolate(-x, self._ulx_data[l, :, :], self._ulx_section_edges) * _even_odd_sign(l)
+
+    def ulx_all_l(self, x):
+        ulx_data = self._interpolate_all_l(numpy.abs(x), self._ulx_data_for_vec, self._ulx_section_edges)
+        if x < 0:
+            # Flip the sign for odd l
+            ulx_data[1::2] *= -1
+        return ulx_data
 
     def check_ulx(self):
         ulx_max = self._ulx_ref_max[2]
@@ -264,7 +272,18 @@ class basis(object):
         :return:
         """
         section_idx = min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
-        return self._interpolate_impl(x - section_edges[section_idx], data[section_idx,:])
+        return self._interpolate_impl(x - section_edges[section_idx], data[section_idx, :])
+
+    def _interpolate_all_l(self, x, data, section_edges):
+        """
+
+        :param x:
+        :param data:
+        :param section_edges:
+        :return:
+        """
+        section_idx = min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
+        return self._interpolate_all_l_impl(x - section_edges[section_idx], data[section_idx, :, :])
 
     def _interpolate_derivative(self, x, order, data, section_edges, section=-1):
         """
@@ -313,6 +332,21 @@ class basis(object):
         dx_power = 1.0
         for p in range(len(coeffs)):
             value += dx_power * coeffs[p]
+            dx_power *= dx
+
+        return value
+
+    def _interpolate_all_l_impl(self, dx, coeffs):
+        """
+        :param dx: coordinate where interpolated value is evalued
+        :param coeffs: expansion coefficients (p, l)
+        :return:  interpolated value
+        """
+        np, nl = coeffs.shape
+        value = numpy.zeros((nl))
+        dx_power = 1.0
+        for p in range(np):
+            value += dx_power * coeffs[p, :]
             dx_power *= dx
 
         return value

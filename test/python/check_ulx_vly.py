@@ -33,6 +33,16 @@ class TestMethods(unittest.TestCase):
             for _data in check_data_vly:
                 self.assertLessEqual(_data[2], 1e-8)
 
+    def test_vectorized_ulx(self):
+        for _lambda in [10.0]:
+            prefix = "basis_b-mp-Lambda" + str(_lambda) + "_np8"
+            rb = ir.basis("../irbasis.h5", prefix)
+
+            x = 0.1
+            ulx_data = rb.ulx_all_l(x)
+            for l in range(rb.dim()):
+                self.assertAlmostEqual(ulx_data[l], rb.ulx(l, x), delta=1e-10)
+
     def test_differential_ulx(self):
         for _lambda in [10.0, 10000.0]:
             prefix = "basis_f-mp-Lambda" + str(_lambda) + "_np8"
