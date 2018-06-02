@@ -18,7 +18,7 @@ set(header_files ${CMAKE_SOURCE_DIR}/c++/irbasis.hpp)
 configure_file(hdf5_test.h5 ${CMAKE_BINARY_DIR}/test/c++ COPYONLY)
 
 #testing source files
-set(unittest_src hdf5 interpolation)
+set(unittest_src hdf5 multi_array interpolation)
 foreach(test ${unittest_src})
     add_gtest(${test} ".")
 endforeach(test)

@@ -23,7 +23,7 @@ class refdata(object):
             self._Tnl_even_l = f[prefix+'/data/leven/l'].value
             
             
-    def check_data(self, basis, prefix, statistics):
+    def check_data(self, basis, statistics):
             #Check odd-l
             l = self._Tnl_odd_l 
             Tnl = basis.compute_Tnl(self._Tnl_odd_ref[:, 0])[:, l]
@@ -39,7 +39,7 @@ class refdata(object):
             else:
                 Tnl_coeff = nvec*Tnl.imag
             dTnl_coeff= abs(Tnl_limit-Tnl_coeff[len(Tnl_coeff)-1]) \
-                    if abs(Tnl_limit) < math.pow(10.0, -12) \
+                    if abs(Tnl_limit) < 1e-12 \
                     else abs(Tnl_limit-Tnl_coeff[len(Tnl_coeff)-1])/abs(Tnl_limit)
             dTnl_limit =dTnl_coeff
 
@@ -74,9 +74,10 @@ class TestMethods(unittest.TestCase):
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
                 rf_ref = refdata("../tnl_safe_ref.h5", prefix)            
                 basis = ir.basis("../irbasis.h5", prefix+"_np8")
-                diff = rf_ref.check_data(basis, prefix, _statistics)
-                self.assertLessEqual(diff[0], math.pow(10.0, -8))
-                self.assertLessEqual(diff[1], math.pow(10.0, -7))
+                diff = rf_ref.check_data(basis, _statistics)
+                self.assertLessEqual(diff[0], 1e-8)
+                self.assertLessEqual(diff[1], 1e-7)
+
 
 if __name__ == '__main__':
     unittest.main()

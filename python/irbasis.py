@@ -140,11 +140,11 @@ class basis(object):
         else:
             return self._interpolate_derivative(-x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
 
-    def d_ulx_all(self, l, x, section=-1):
-        if x >= 0:
-            return self._interpolate_derivatives(x, self._ulx_data[l, :, :], self._ulx_section_edges, section)
-        else:
-            return self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
+    def _d_ulx_all(self, l, x, section=-1):
+        assert x >= 0
+        return self._interpolate_derivatives(x, self._ulx_data[l, :, :], self._ulx_section_edges, section)
+        #else:
+            #return self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
 
     def vly(self, l, y):
         if y >= 0:
@@ -192,7 +192,7 @@ class basis(object):
         replaced_with_tail = numpy.zeros((num_n, self.dim()), dtype=int)
         deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
         for l in range(self.dim()):
-            deriv_x1[l, :] = self.d_ulx_all(l, 1.0)
+            deriv_x1[l, :] = self._d_ulx_all(l, 1.0)
         Tnl_tail = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1)
         Tnl_tail_without_last_two = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1[:, :-2])
         for i in range(len(n)):
@@ -215,8 +215,8 @@ class basis(object):
 
             # Derivatives at end points
             for l in range(self.dim()):
-                deriv0[l, :] = self.d_ulx_all(l, x0, s)
-                deriv1[l, :] = self.d_ulx_all(l, x1, s)
+                deriv0[l, :] = self._d_ulx_all(l, x0, s)
+                deriv1[l, :] = self._d_ulx_all(l, x1, s)
 
             # Mask based on phase shift
             mask = numpy.logical_and(numpy.abs(w_vec) * (x1-x0) > 0.1 * numpy.pi, mask_tail)
@@ -229,8 +229,8 @@ class basis(object):
             weight = weight_org * (x1 - x0)/2
 
             smpl_vals = numpy.zeros((deg, self.dim()))
-            for l, ix in product(range(self.dim()), range(deg)):
-                smpl_vals[ix, l] = self.ulx(l, x_smpl[ix])
+            for ix in range(deg):
+                smpl_vals[ix, :] = self.ulx_all_l(x_smpl[ix])
             mask_not = numpy.logical_and(numpy.logical_not(mask), mask_tail)
             exp_iwx = numpy.exp(numpy.einsum('w,x->wx', 1J * w_vec[mask_not], x_smpl))
             result[mask_not, :] += numpy.einsum('wx,x,xl->wl', exp_iwx, weight, smpl_vals)
