@@ -11,7 +11,7 @@ foreach(testfile ${TEST_FILES})
     configure_file(${testfile} ${CMAKE_BINARY_DIR}/test/python COPYONLY)
 endforeach()
 
-set(python_test_src check_ulx_vly check_Tnl)
+set(python_test_src check_ulx_vly check_Tnl utility)
 foreach(test ${python_test_src})
     add_python_test(${test})
 endforeach(test)

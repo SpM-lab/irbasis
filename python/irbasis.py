@@ -367,7 +367,8 @@ class basis(object):
 
         return coeffs_deriv
 
-def composite_leggauss(deg, section_edges):
+
+def _composite_leggauss(deg, section_edges):
     """
     Composite Gauss-Legendre quadrature.
 
@@ -389,6 +390,31 @@ def composite_leggauss(deg, section_edges):
         w.extend((w_loc*(dx/2)).tolist())
 
     return numpy.array(x), numpy.array(w)
+
+
+class transformer(object):
+    def __init__(self, basis, beta):
+        section_edges_positive_half = numpy.array(basis.section_edges_x)
+        section_edges = numpy.setxor1d(section_edges_positive_half, -section_edges_positive_half)
+        self._dim = basis.dim()
+        self._beta = beta
+        self._x, self._w = _composite_leggauss(24, section_edges)
+
+        nx = len(self._x)
+        self._u_smpl = numpy.zeros((nx, self._dim))
+        for ix in range(nx):
+            self._u_smpl[ix, :] = self._w[ix] * basis.ulx_all_l(self._x[ix])
+
+    def compute_gl(self, gtau, nl):
+        assert nl <= self._dim
+
+        nx = len(self._x)
+        gtau_smpl = numpy.zeros((1, nx))
+        for ix in range(nx):
+            gtau_smpl[0, ix] = gtau(0.5 * (self._x[ix] + 1) * self._beta)
+
+        return numpy.sqrt(self._beta / 2) * numpy.dot(gtau_smpl[:, :], self._u_smpl[:, 0:nl]).reshape((nl))
+
 
 if __name__ == '__main__':
     import argparse
