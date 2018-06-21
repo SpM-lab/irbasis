@@ -10,11 +10,12 @@ import matplotlib.pylab as plt
 
 
 beta = 10.0
-Lambda = 1000.0
+Lambda = 10000.0
 pole = 1.0
 
 basis = TwoPointGFBasis('F', Lambda, beta)
 Nl = basis.dim()
+print("Ns ", basis.num_sections_x())
 print("dim ", Nl)
 
 wn = lambda n : (2*n+1)*numpy.pi/beta

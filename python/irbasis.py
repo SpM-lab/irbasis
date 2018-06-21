@@ -409,7 +409,7 @@ class transformer(object):
         assert nl <= self._dim
 
         nx = len(self._x)
-        gtau_smpl = numpy.zeros((1, nx))
+        gtau_smpl = numpy.zeros((1, nx), dtype=complex)
         for ix in range(nx):
             gtau_smpl[0, ix] = gtau(0.5 * (self._x[ix] + 1) * self._beta)
 
