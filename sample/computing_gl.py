@@ -50,14 +50,16 @@ class transformer(object):
         return numpy.sqrt(self._beta / 2) * numpy.dot(gtau_smpl[:, :], self._u_smpl[:, 0:nl]).reshape((nl))
 
 if __name__ == '__main__':
-    beta = 1000.0
-    Lambda = 10000.0
+    beta = 100.0
+    Lambda = 1000.0
     wmax = Lambda/beta
 
     pole = 1.0
 
     basis = irbasis.load('F',  Lambda)
     Nl = basis.dim()
+    #import scipy.integrate as integrate
+    #print(integrate.quad(lambda x : basis.ulx(0,x)**2, -1, 1))
 
     # Initialize a transformer
     trans = transformer(basis, beta)
@@ -70,12 +72,12 @@ if __name__ == '__main__':
 
     # In this special case, Gl can be computed from rho_l.
     rhol = numpy.sqrt(1/wmax) * numpy.array([basis.vly(l, pole/wmax) for l in range(Nl)])
-    Sl = numpy.sqrt(beta/(8 * wmax)) * numpy.array([basis.sl(l) for l in range(Nl)])
+    Sl = numpy.sqrt(beta * wmax / 2) * numpy.array([basis.sl(l) for l in range(Nl)])
     Gl_ref = - Sl * rhol
 
     # Where does this factor of 20 from?
     for l in range(Nl):
-        print(l, float(Gl[l]), 20 * float(Gl_ref[l]))
+        print(l, float(Gl[l]), float(Gl_ref[l]))
 
     # Transform Gl to Matsubara frequency domain
     nvec = numpy.array([0, 10, 100, 1000, 10000, 100000])
