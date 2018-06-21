@@ -58,8 +58,6 @@ if __name__ == '__main__':
 
     basis = irbasis.load('F',  Lambda)
     Nl = basis.dim()
-    #import scipy.integrate as integrate
-    #print(integrate.quad(lambda x : basis.ulx(0,x)**2, -1, 1))
 
     # Initialize a transformer
     trans = transformer(basis, beta)
@@ -75,12 +73,11 @@ if __name__ == '__main__':
     Sl = numpy.sqrt(beta * wmax / 2) * numpy.array([basis.sl(l) for l in range(Nl)])
     Gl_ref = - Sl * rhol
 
-    # Where does this factor of 20 from?
     for l in range(Nl):
         print(l, float(Gl[l]), float(Gl_ref[l]))
 
     # Transform Gl to Matsubara frequency domain
-    nvec = numpy.array([0, 10, 100, 1000, 10000, 100000])
+    nvec = numpy.array([0, 10, 100, 1000, 10000, 100000, -10])
     Niw = len(nvec)
     Unl = numpy.sqrt(beta) * basis.compute_Tnl(nvec)
     Giw = numpy.dot(Unl, Gl)
