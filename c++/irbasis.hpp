@@ -1079,13 +1079,13 @@ public:
     return vly_.data.extent(1);
   }
 
-  std::vector<std::vector<std::complex<double> > > compute_Tnl(long n) const {
-      std::vector<long> n_vec;
+  std::vector<std::vector<std::complex<double> > > compute_Tnl(long long n) const {
+      std::vector<long long> n_vec;
       n_vec.push_back(n);
       return compute_Tnl(n_vec);
   }
 
-  std::vector<std::vector<std::complex<double> > > compute_Tnl(const std::vector<long> &n) const {
+  std::vector<std::vector<std::complex<double> > > compute_Tnl(const std::vector<long long> &n) const {
     using namespace internal;
 
     typedef std::complex<double> dcomplex;
