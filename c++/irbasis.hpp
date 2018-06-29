@@ -13,6 +13,9 @@
 #include <complex>
 #include <hdf5.h>
 
+//debug
+//#include <chrono>
+
 namespace irbasis {
 namespace internal {
 
@@ -830,57 +833,46 @@ compute_Tnl_high_freq(const std::vector<bool> &mask,
   std::size_t nw_target = w_vec_target.size();
   std::size_t nl = derive0.extent(0);
   std::size_t n_deriv = derive0.extent(1);
-  multi_array<std::complex<double>, 2> iw(nw_target, nl);
-  iw.fill(0);
-  std::complex<double> J = std::complex<double>(0.0, 1.0);
+  std::complex<double> J(0.0, 1.0);
 
   assert(result.extent(0) == w_vec_org.size());
   assert(result.extent(1) == nl);
 
-  for (int i = 0; i < nw_target; i++) {
-    for (int l = 0; l < nl; l++) {
-      iw(i, l) = J * w_vec_target[i];
-    }
-  }
+  //auto t1 = std::chrono::system_clock::now();
 
-  multi_array<std::complex<double>, 3> exp10_d1(n_deriv, nw_target, nl);
-  multi_array<std::complex<double>, 3> d0_work(n_deriv, nw_target, nl);
-  multi_array<std::complex<double>, 3> coeff(n_deriv, nw_target, nl);
-  coeff.fill(0.0);
-
+  //multi_array<std::complex<double>, 3> coeff(n_deriv, nw_target, nl);
+  std::vector<std::complex<double> > inv_iw(nw_target);
+  std::vector<std::complex<double> > exp_w_x10(nw_target);
+  std::vector<std::complex<double> > exp_w_x0(nw_target);
   for (int w = 0; w < nw_target; w++) {
-    for (int l = 0; l < nl; l++) {
-      for (int d = 0; d < n_deriv; d++) {
-        exp10_d1(d, w, l) = exp(J * w_vec_target[w] * (x1 - x0)) * derive1(l, d);
-        d0_work(d, w, l) = derive0(l, d);
-      }
-    }
+    inv_iw[w] = 1.0/(J * w_vec_target[w]);
+    exp_w_x10[w] = exp(J * w_vec_target[w] * (x1 - x0));
+    exp_w_x0[w] = exp(J * w_vec_target[w] * x0);
   }
 
-  for (int w = 0; w < nw_target; w++) {
-    for (int l = 0; l < nl; l++) {
-      for (int d = 0; d < n_deriv; d++) {
-        coeff(d, w, l) += (exp10_d1(d, w, l) - d0_work(d, w, l)) * exp(J * w_vec_target[w] * x0);
-      }
-    }
-  }
+  //auto t2 = std::chrono::system_clock::now();
 
-  //std::vector <std::vector <std::complex <double> > > jk(nw_target, std::vector <std::complex <double> > (nl, 0));
   multi_array<std::complex<double>, 2> jk(nw_target, nl);
   jk.fill(0);
+  //auto t3 = std::chrono::system_clock::now();
   for (int k = n_deriv - 1; k > -1; --k) {
     for (int w = 0; w < nw_target; w++) {
       for (int l = 0; l < nl; l++) {
-        jk(w, l) = (coeff(k, w, l) - jk(w, l)) / iw(w, l);
+        std::complex<double> c = (exp_w_x10[w] * derive1(l, k) - derive0(l,k) ) * exp_w_x0[w];
+        jk(w, l) = (c - jk(w, l)) * inv_iw[w];
       }
     }
   }
+  //auto t4 = std::chrono::system_clock::now();
   for (int i = 0; i < nw_target; i++) {
     for (int l = 0; l < nl; l++) {
       // use += to sum up contributions from all sections
       result(idx_w_target[i], l) += jk(i, l);
     }
   }
+  //std::cout << "t2-t1 " <<  std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << std::endl;
+  //std::cout << "t3-t2 " <<  std::chrono::duration_cast<std::chrono::milliseconds>(t3-t2).count() << std::endl;
+  //std::cout << "t4-t3 " <<  std::chrono::duration_cast<std::chrono::milliseconds>(t4-t3).count() << std::endl;
 }
 
 struct func {
