@@ -68,9 +68,13 @@ def _compute_Tnl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
 
     result[mask, :] += jk
 
-def load(statistics, Lambda):
-    name = os.path.dirname(os.path.abspath(__file__)) 
-    file_name = os.path.normpath(os.path.join(name, './irbasis.h5'))
+def load(statistics, Lambda, h5file=""):
+    if h5file == "":
+        name = os.path.dirname(os.path.abspath(__file__)) 
+        file_name = os.path.normpath(os.path.join(name, './irbasis.h5'))
+    else:
+        file_name = h5file
+
     prefix = "basis_f-mp-Lambda"+str(Lambda)+"_np8" if statistics == 'F' else "basis_b-mp-Lambda"+str(Lambda)+"_np8"
 
     with h5py.File(file_name, 'r') as f:
