@@ -21,8 +21,11 @@ int main() {
 	std::cout << b.d_vly(0,1,1) << std::endl;
 	
 	//Fourier taransform of ulx
-	//std::vector<std::vector<std::complex<double>>> vec{0};
-	std::vector<double> vec{0};
+	std::vector<long> vec;
+        vec.push_back(0);
+
 	std::cout << b.compute_Tnl(vec)[0][0] << std::endl;
+
+	std::cout << b.compute_Tnl(0)[0][0] << std::endl;
 	
 }

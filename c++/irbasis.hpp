@@ -1079,23 +1079,20 @@ public:
     return vly_.data.extent(1);
   }
 
-  template<typename T>
-  std::vector<std::vector<std::complex<double> > > compute_Tnl(T &n_) const {
+  std::vector<std::vector<std::complex<double> > > compute_Tnl(long n) const {
+      std::vector<long> n_vec;
+      n_vec.push_back(n);
+      return compute_Tnl(n_vec);
+  }
+
+  std::vector<std::vector<std::complex<double> > > compute_Tnl(const std::vector<long> &n) const {
+    using namespace internal;
+
     typedef std::complex<double> dcomplex;
 
-    int num_n;
+    int num_n = n.size();
     std::complex<double> J = std::complex<double>(0.0, 1.0);
 
-    std::vector<int> n;
-    if (typeid(n_) == typeid(int)) {
-      num_n = 1;
-      n.resize(1, 0);
-    } else {
-      num_n = n_.size();
-      n = n_;
-    }
-
-    using namespace internal;
     std::vector<double> o_vec(n.size());
     if (this->statistics_ == "F") {
       for (int i = 0; i < num_n; i++) {
