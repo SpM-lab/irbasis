@@ -1,1 +1,1 @@
-g++ computing_gl.cpp -L /usr/local/lib -lhdf5
+g++ api.cpp -L /usr/local/lib -lhdf5 -DNDEBUG -O3

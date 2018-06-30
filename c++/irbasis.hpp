@@ -15,6 +15,10 @@
 
 //debug
 //#include <chrono>
+//
+//#ifdef IRBASIS_USE_EIGEN3
+//#include <Eigen/Core>
+//#endif
 
 namespace irbasis {
 namespace internal {
@@ -491,42 +495,42 @@ public:
     return p_data_;
   }
 
-  T &operator()(int i) {
+  inline T &operator()(int i) {
     assert(DIM == 1);
     int idx = i;
     assert(idx >= 0 && idx < num_elements());
     return *(p_data_ + idx);
   }
 
-  const T &operator()(int i) const {
+  inline const T &operator()(int i) const {
     assert(DIM == 1);
     int idx = i;
     assert(idx >= 0 && idx < num_elements());
     return *(p_data_ + idx);
   }
 
-  T &operator()(int i, int j) {
+  inline T &operator()(int i, int j) {
     assert(DIM == 2);
     int idx = extents_[1] * i + j;
     assert(idx >= 0 && idx < num_elements());
     return *(p_data_ + idx);
   }
 
-  const T &operator()(int i, int j) const {
+  inline const T &operator()(int i, int j) const {
     assert(DIM == 2);
     int idx = extents_[1] * i + j;
     assert(idx >= 0 && idx < num_elements());
     return *(p_data_ + idx);
   }
 
-  T &operator()(int i, int j, int k) {
+  inline T &operator()(int i, int j, int k) {
     assert(DIM == 3);
     int idx = (i * extents_[1] + j) * extents_[2] + k;
     assert(idx >= 0 && idx < num_elements());
     return *(p_data_ + idx);
   }
 
-  const T &operator()(int i, int j, int k) const {
+  inline const T &operator()(int i, int j, int k) const {
     assert(DIM == 3);
     int idx = (i * extents_[1] + j) * extents_[2] + k;
     assert(idx >= 0 && idx < num_elements());
@@ -840,30 +844,40 @@ compute_Tnl_high_freq(const std::vector<bool> &mask,
 
   //auto t1 = std::chrono::system_clock::now();
 
-  //multi_array<std::complex<double>, 3> coeff(n_deriv, nw_target, nl);
   std::vector<std::complex<double> > inv_iw(nw_target);
   std::vector<std::complex<double> > exp_w_x10(nw_target);
+  std::vector<std::complex<double> > exp_w_x1(nw_target);
   std::vector<std::complex<double> > exp_w_x0(nw_target);
   for (int w = 0; w < nw_target; w++) {
     inv_iw[w] = 1.0/(J * w_vec_target[w]);
     exp_w_x10[w] = exp(J * w_vec_target[w] * (x1 - x0));
     exp_w_x0[w] = exp(J * w_vec_target[w] * x0);
+    exp_w_x1[w] = exp(J * w_vec_target[w] * x1);
+  }
+
+  multi_array<std::complex<double>, 3> coeff(n_deriv, nw_target, nl);
+  for (int k = 0; k < n_deriv; ++k) {
+     for (int w = 0; w < nw_target; w++) {
+       for (int l = 0; l < nl; l++) {
+          coeff(k, w, l) = exp_w_x1[w] * derive1(l, k) - exp_w_x0[w] * derive0(l, k);
+      }
+    }
   }
 
   //auto t2 = std::chrono::system_clock::now();
 
   multi_array<std::complex<double>, 2> jk(nw_target, nl);
   jk.fill(0);
-  //auto t3 = std::chrono::system_clock::now();
   for (int k = n_deriv - 1; k > -1; --k) {
+    multi_array<std::complex<double>, 2> coeff_view = coeff.make_view(k);
     for (int w = 0; w < nw_target; w++) {
       for (int l = 0; l < nl; l++) {
-        std::complex<double> c = (exp_w_x10[w] * derive1(l, k) - derive0(l,k) ) * exp_w_x0[w];
-        jk(w, l) = (c - jk(w, l)) * inv_iw[w];
+        jk(w, l) = (coeff_view(w, l) - jk(w, l)) * inv_iw[w];
       }
     }
   }
-  //auto t4 = std::chrono::system_clock::now();
+
+  //auto t3 = std::chrono::system_clock::now();
   for (int i = 0; i < nw_target; i++) {
     for (int l = 0; l < nl; l++) {
       // use += to sum up contributions from all sections
