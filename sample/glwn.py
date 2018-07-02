@@ -52,7 +52,7 @@ class transformer(object):
 if __name__ == '__main__':
     beta = 100.0
     
-    stat = 'F' # 'F' for Fermionic or 'B' for Bosonic
+    stat = 'B' # 'F' for Fermionic or 'B' for Bosonic
     Lambda = 1000.0
     wmax = Lambda/beta
 
@@ -94,8 +94,8 @@ if __name__ == '__main__':
     plt.xscale("log")
     point = []
     N = 100000
-    for i in range(50):
-        point.append(N * numpy.exp(-i/5))
+    for x in range(50):
+        point.append(N * numpy.exp(-x/3))
     
     #plt.show()
     # Transform Gl to Matsubara frequency domain
@@ -125,5 +125,6 @@ if __name__ == '__main__':
         p += 1
     plt.scatter(point,Glist)
     plt.ylabel(r'$\rm{|(Giw -ref)/ref|}$',fontsize = 21)
+    plt.xlabel(r'$n$',fontsize = 21)
     plt.savefig('subtrGiw'+'.pdf')  
         
