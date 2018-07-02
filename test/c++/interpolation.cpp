@@ -30,7 +30,7 @@ public:
     tnl_odd.resize(data_odd.extent(0));
     n_odd.resize(data_odd.extent(0));
     for (int i = 0; i < data_odd.extent(0); i++) {
-      n_odd[i] = static_cast<std::size_t> (data_odd(i, 0).real());
+      n_odd[i] = static_cast<long long> (data_odd(i, 0).real());
       tnl_odd[i] = data_odd(i, 1);
     }
 
@@ -46,7 +46,7 @@ public:
     tnl_even.resize(data_even.extent(0));
     n_even.resize(data_even.extent(0));
     for (int i = 0; i < data_odd.extent(0); i++) {
-      n_even[i] = static_cast<std::size_t> (data_even(i, 0).real());
+      n_even[i] = static_cast<long long> (data_even(i, 0).real());
       tnl_even[i] = data_even(i, 1);
     }
     H5Fclose(file);
@@ -56,12 +56,12 @@ public:
   int dim;
 
   std::vector<std::complex<double> > tnl_odd;
-  std::vector<int> n_odd;
+  std::vector<long long> n_odd;
   double tnl_odd_max;
   int odd_l;
 
   std::vector<std::complex<double> > tnl_even;
-  std::vector<int> n_even;
+  std::vector<long long> n_even;
   double tnl_even_max;
   int even_l;
 };
@@ -152,7 +152,7 @@ TEST(interpolation, differential_ulx) {
 double check_data_tail(basis bs, refdata rb, std::string _statics) {
   //Check odd-l
   int l = rb.odd_l;
-  std::vector<int> n(1, static_cast<int>(1e8));
+  std::vector<long long> n(1, 1e+8);
   std::vector<std::vector<std::complex<double> > > Tnl = bs.compute_Tnl(n);
   double Tnl_limit, Tnl_coeff;
   if (_statics == "f") {
