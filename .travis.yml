@@ -1,0 +1,31 @@
+language: python
+sudo: required
+dist: trusty
+
+python:
+    - 3.3
+    - 3.4
+
+branches:
+  only:
+    - master
+    - travis # To debug .travis.yml
+
+addons:
+  apt:
+    packages:
+      - libhdf5-serial-dev
+
+script:
+  # Stop on first error
+  - set -e
+
+  # Build, test and install ALPSCore/CT-HYB
+  - cd $TRAVIS_BUILD_DIR/..
+  - mkdir build
+  - cd build
+  - |
+    cmake ../irbasis  \
+    -DCMAKE_BUILD_TYPE=Debug                              \
+    -DCMAKE_INSTALL_PREFIX=$TRAVIS_BUILD_DIR/installed
+  - make test
