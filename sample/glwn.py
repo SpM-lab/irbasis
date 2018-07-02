@@ -124,6 +124,7 @@ if __name__ == '__main__':
         Glist.append(numpy.abs((Giw[p] - ref)/ref))
         p += 1
     plt.scatter(point,Glist)
+
     plt.ylabel(r'$\rm{|(Giw -ref)/ref|}$',fontsize = 21)
     plt.xlabel(r'$n$',fontsize = 21)
     plt.savefig('subtrGiw'+'.pdf')  
