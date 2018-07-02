@@ -26,7 +26,7 @@ class refdata(object):
     def check_data(self, basis, statistics):
             #Check odd-l
             l = self._Tnl_odd_l 
-            Tnl = basis.compute_Tnl(self._Tnl_odd_ref[:, 0])[:, l]
+            Tnl = basis.compute_Tnl(numpy.array(self._Tnl_odd_ref[:, 0], dtype=int))[:, l]
             dTnl = abs(Tnl- self._Tnl_odd_ref[:,1])/self._Tnl_odd_ref_max
 
             if statistics == "f":
@@ -45,7 +45,7 @@ class refdata(object):
 
             #Check even-l
             l = self._Tnl_even_l 
-            Tnl = basis.compute_Tnl(self._Tnl_even_ref[:, 0])[:, l]
+            Tnl = basis.compute_Tnl(numpy.array(self._Tnl_even_ref[:, 0], dtype=int))[:, l]
             dTnl = numpy.append(dTnl, abs(Tnl- self._Tnl_even_ref[:,1])/self._Tnl_even_ref_max)
             
             if statistics == "f":
