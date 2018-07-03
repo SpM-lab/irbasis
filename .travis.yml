@@ -23,9 +23,6 @@ script:
   - set -e
 
   # Build, test irbasis
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
   - cd $TRAVIS_BUILD_DIR/..
   - mkdir build
   - cd build
