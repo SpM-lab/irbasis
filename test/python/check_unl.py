@@ -14,12 +14,12 @@ class refdata(object):
             self._Lambda = f[prefix+'/info/Lambda'].value
             self._dim = f[prefix+'/info/dim'].value
 
-            self._unl_odd_ref = f[prefix+'/data/lodd/Tnl'].value
-            self._unl_odd_ref_max = f[prefix+'/data/lodd/Tnlmax'].value
+            self._unl_odd_ref = f[prefix+'/data/lodd/unl'].value
+            self._unl_odd_ref_max = f[prefix+'/data/lodd/unlmax'].value
             self._unl_odd_l = f[prefix+'/data/lodd/l'].value
             
-            self._unl_even_ref = f[prefix+'/data/leven/Tnl'].value
-            self._unl_even_ref_max = f[prefix+'/data/leven/Tnlmax'].value
+            self._unl_even_ref = f[prefix+'/data/leven/unl'].value
+            self._unl_even_ref_max = f[prefix+'/data/leven/unlmax'].value
             self._unl_even_l = f[prefix+'/data/leven/l'].value
             
             

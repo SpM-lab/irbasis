@@ -769,7 +769,7 @@ int even_odd_sign(const int l) {
 
 inline
 multi_array<std::complex<double>, 2>
-compute_Tnl_tail(std::vector<double> &w_vec,
+compute_unl_tail(std::vector<double> &w_vec,
                  const std::string &statistics,
                  const multi_array<double, 2> &derive_x1,
                  const int n) {
@@ -819,7 +819,7 @@ compute_Tnl_tail(std::vector<double> &w_vec,
 
 inline
 void
-compute_Tnl_high_freq(const std::vector<bool> &mask,
+compute_unl_high_freq(const std::vector<bool> &mask,
                       const std::vector<double> &w_vec_org,
                       const multi_array<double, 2> &derive0,
                       const multi_array<double, 2> &derive1,
@@ -1085,13 +1085,13 @@ public:
     return vly_.data.extent(1);
   }
 
-  std::vector<std::vector<std::complex<double> > > compute_Tnl(long long n) const {
+  std::vector<std::vector<std::complex<double> > > compute_unl(long long n) const {
       std::vector<long long> n_vec;
       n_vec.push_back(n);
-      return compute_Tnl(n_vec);
+      return compute_unl(n_vec);
   }
 
-  std::vector<std::vector<std::complex<double> > > compute_Tnl(const std::vector<long long> &n) const {
+  std::vector<std::vector<std::complex<double> > > compute_unl(const std::vector<long long> &n) const {
     using namespace internal;
 
     typedef std::complex<double> dcomplex;
@@ -1126,14 +1126,14 @@ public:
         deriv_x1(l, p) = d_ulx_result[p];
       }
     }
-    multi_array<std::complex<double>, 2> Tnl_tail = compute_Tnl_tail(w_vec, statistics_, deriv_x1, -1);
-    multi_array<std::complex<double>, 2> Tnl_tail_without_last_two = compute_Tnl_tail(w_vec, statistics_, deriv_x1, 2);
+    multi_array<std::complex<double>, 2> unl_tail = compute_unl_tail(w_vec, statistics_, deriv_x1, -1);
+    multi_array<std::complex<double>, 2> unl_tail_without_last_two = compute_unl_tail(w_vec, statistics_, deriv_x1, 2);
 
     for (int i = 0; i < num_n; i++) {
       if (statistics_ == "B" && n[i] == 0)
         continue;
       for (int l = 0; l < dim_; ++l) {
-        if (std::abs((Tnl_tail(i, l) - Tnl_tail_without_last_two(i, l)) / Tnl_tail(i, l)) < 1e-10) {
+        if (std::abs((unl_tail(i, l) - unl_tail_without_last_two(i, l)) / unl_tail(i, l)) < 1e-10) {
           replaced_with_tail[i][l] = 1;
         }
       }
@@ -1181,7 +1181,7 @@ public:
         mask_use_high_freq_formula[i] = (mask_tail[i] && ((std::abs(w_vec[i]) * (x1 - x0)) > (0.1 * M_PI)));
       }
       //High frequency formula
-      compute_Tnl_high_freq(mask_use_high_freq_formula, w_vec, deriv0, deriv1, x0, x1, result);
+      compute_unl_high_freq(mask_use_high_freq_formula, w_vec, deriv0, deriv1, x0, x1, result);
 
       //low frequency formula (Gauss-Legendre quadrature)
       std::vector<bool> mask_use_low_freq_formula(num_n);
@@ -1253,7 +1253,7 @@ public:
     for (int i = 0; i < num_n; i++) {
       for (int l = 0; l < dim_; l++) {
         if (replaced_with_tail[i][l] == 1) {
-          result_vec[i][l] = Tnl_tail(i, l);
+          result_vec[i][l] = unl_tail(i, l);
         }
       }
     }
