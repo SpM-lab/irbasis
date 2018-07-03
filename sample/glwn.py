@@ -102,7 +102,7 @@ if __name__ == '__main__':
     #nvec = numpy.array([0, 10, 100, 1000, 10000, 100000, -10])
     #nvec = numpy.arange(100)
     #Niw = len(nvec)
-    Unl = numpy.sqrt(beta) * basis.compute_Tnl(point)
+    Unl = numpy.sqrt(beta) * basis.compute_unl(point)
     Giw = numpy.dot(Unl, Gl)
 
     # Compare the result with the exact one 1/(i w_n - pole)

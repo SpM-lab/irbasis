@@ -30,5 +30,5 @@ for k in [1,2,3]:
 
 # Fourier transform of ulx
 n = numpy.arange(1000)
-unl = basis.compute_Tnl(n)
+unl = basis.compute_unl(n)
 print("dimensions of unl ", unl.shape)

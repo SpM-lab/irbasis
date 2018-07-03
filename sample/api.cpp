@@ -32,9 +32,6 @@ int main() {
     }
 
     //unl will be a two-dimensional array of size (vec.size(), b.dim)).
-    std::vector<std::vector<std::complex<double> > >  unl = b.compute_Tnl(vec);
+    std::vector<std::vector<std::complex<double> > >  unl = b.compute_unl(vec);
     std::cout << "Dimensions of unl " << unl.size() << " " << unl[0].size() << std::endl;
-
-    //std::cout << b.compute_Tnl(vec)[0][0] << std::endl;
-    //std::cout << b.compute_Tnl(0)[0][0] << std::endl;
 }
