@@ -180,7 +180,7 @@ class basis(object):
         if isinstance(n, int):
             num_n = 1
             o_vec = 2*numpy.array([n], dtype=float)
-        elif (isinstance(n, numpy.ndarray) and numpy.issubdtype(n.dtype, np.integer)) or (isinstance(n, list) and numpy.all([type(e) == int for e in n]) ):
+        elif (isinstance(n, numpy.ndarray) and numpy.issubdtype(n.dtype, numpy.integer)) or (isinstance(n, list) and numpy.all([type(e) == int for e in n]) ):
             num_n = len(n)
             o_vec = 2*numpy.array(n, dtype=float)
         else:

@@ -25,8 +25,8 @@ class refdata(object):
             
     def check_data(self, basis, statistics):
             #Check odd-l
-            l = self._unl_odd_l
-            unl = basis.compute_unl(self._unl_odd_ref[:, 0])[:, l]
+            l = self._unl_odd_l 
+            unl = basis.compute_unl(numpy.array(self._unl_odd_ref[:, 0], dtype=int))[:, l]
             dunl = abs(unl- self._unl_odd_ref[:,1])/self._unl_odd_ref_max
 
             if statistics == "f":
@@ -44,8 +44,8 @@ class refdata(object):
             dunl_limit =dunl_coeff
 
             #Check even-l
-            l = self._unl_even_l
-            unl = basis.compute_unl(self._unl_even_ref[:, 0])[:, l]
+            l = self._unl_even_l 
+            unl = basis.compute_unl(numpy.array(self._unl_even_ref[:, 0], dtype=int))[:, l]
             dunl = numpy.append(dunl, abs(unl- self._unl_even_ref[:,1])/self._unl_even_ref_max)
             
             if statistics == "f":

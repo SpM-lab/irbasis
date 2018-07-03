@@ -33,7 +33,7 @@ if __name__ == '__main__':
     plt.ylabel(r'$u^{0}(x)$'.format(r"{\rm{F}}"),fontsize = 21)
     plt.legend(frameon=False,fontsize = 21)
     plt.tight_layout()
-    #plt.savefig('u'+'.pdf')  
+    plt.savefig('u'+'.pdf')  
     
     
     plt.figure(2)   
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     plt.ylabel(r'$v^{0}(y)$'.format(r"{\rm{F}}"),fontsize = 21)
     plt.legend(frameon=False,fontsize = 21)
     plt.tight_layout()
-    #plt.savefig('v'+'.pdf')  
+    plt.savefig('v'+'.pdf')  
     plt.show()
 
     
