@@ -3,7 +3,6 @@ sudo: required
 dist: trusty
 
 python:
-    - 3.3
     - 3.4
 
 branches:
@@ -20,7 +19,10 @@ script:
   # Stop on first error
   - set -e
 
-  # Build, test and install ALPSCore/CT-HYB
+  # Build, test irbasis
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
   - cd $TRAVIS_BUILD_DIR/..
   - mkdir build
   - cd build
