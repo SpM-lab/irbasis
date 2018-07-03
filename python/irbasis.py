@@ -13,7 +13,7 @@ is_python3 = int(platform.python_version_tuple()[0]) == 3
 def _even_odd_sign(l):
     return 1 if l%2==0 else -1
 
-def _compute_Tnl_tail(w_vec, stastics, deriv_x1):
+def _compute_unl_tail(w_vec, stastics, deriv_x1):
     sign_statistics = 1 if stastics == 'B' else -1
 
     n_iw = len(w_vec)
@@ -38,9 +38,9 @@ def _compute_Tnl_tail(w_vec, stastics, deriv_x1):
     return -(sign_statistics/numpy.sqrt(2.0)) * numpy.einsum('ij,kj->ik', coeffs_nm, coeffs_lm)
 
 
-def _compute_Tnl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
+def _compute_unl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
     """
-    Compute Tnl by high-frequency formula
+    Compute unl by high-frequency formula
     :param mask:
     :param w_vec_org:
     :param deriv0: derivatives at x0
@@ -171,7 +171,7 @@ class basis(object):
             return self._interpolate_derivative(-y, order, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l + order)
 
 
-    def compute_Tnl(self, n):
+    def compute_unl(self, n):
         """
         Compute transformation matrix
         :param n: array-like or int   index (indices) of Matsubara frequencies
@@ -197,13 +197,13 @@ class basis(object):
         deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
         for l in range(self.dim()):
             deriv_x1[l, :] = self._d_ulx_all(l, 1.0)
-        Tnl_tail = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1)
-        Tnl_tail_without_last_two = _compute_Tnl_tail(w_vec, self._statistics, deriv_x1[:, :-2])
+        unl_tail = _compute_unl_tail(w_vec, self._statistics, deriv_x1)
+        unl_tail_without_last_two = _compute_unl_tail(w_vec, self._statistics, deriv_x1[:, :-2])
         for i in range(len(n)):
             if self._statistics == 'B' and n[i] == 0:
                 continue
             for l in range(self.dim()):
-                if numpy.abs((Tnl_tail[i, l] - Tnl_tail_without_last_two[i, l])/Tnl_tail[i, l]) < 1e-10:
+                if numpy.abs((unl_tail[i, l] - unl_tail_without_last_two[i, l])/unl_tail[i, l]) < 1e-10:
                     replaced_with_tail[i, l] = 1
         mask_tail = numpy.prod(replaced_with_tail, axis=1) == 0
 
@@ -226,7 +226,7 @@ class basis(object):
             mask = numpy.logical_and(numpy.abs(w_vec) * (x1-x0) > 0.1 * numpy.pi, mask_tail)
             
             # High frequency formula
-            _compute_Tnl_high_freq(mask, w_vec, deriv0, deriv1, x0, x1, result)
+            _compute_unl_high_freq(mask, w_vec, deriv0, deriv1, x0, x1, result)
 
             # low frequency formula (Gauss-Legendre quadrature)
             x_smpl = 0.5 * (x_smpl_org + 1) * (x1 - x0) + x0
@@ -249,7 +249,7 @@ class basis(object):
         # Overwrite by tail
         for i, l in product(range(len(n)), range(self.dim())):
             if replaced_with_tail[i, l] == 1:
-                result[i, l] = Tnl_tail[i, l]
+                result[i, l] = unl_tail[i, l]
 
         return result
 

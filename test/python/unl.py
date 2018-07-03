@@ -7,11 +7,11 @@ class TestMethods(unittest.TestCase):
         
         super(TestMethods, self).__init__(*args, **kwargs)
 
-    def test_Tnl(self):
+    def test_unl(self):
         for _lambda in [10000.0]:
             prefix = "basis_f-mp-Lambda"+str(_lambda)+"_np10"
             rf = ir.basis("../irbasis.h5", prefix)
-            Tnl = rf.compute_Tnl([0,1,2])
+            unl = rf.compute_unl([0,1,2])
 
 
 if __name__ == '__main__':
