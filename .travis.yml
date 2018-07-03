@@ -15,6 +15,9 @@ addons:
     packages:
       - libhdf5-serial-dev
 
+install:
+  - pip install -r requirements.txt
+
 script:
   # Stop on first error
   - set -e
