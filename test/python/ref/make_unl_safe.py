@@ -31,9 +31,9 @@ class BasisSet(object):
     def set_unl(self, unl, l):
         dir = self._prefix_name
         str_dir = "leven" if l%2 == 0 else "lodd"
-        self._write_data(dir + "/data/"+str_dir+"/unl", tnl)
+        self._write_data(dir + "/data/"+str_dir+"/unl", unl)
         self._write_data(dir + "/data/"+str_dir+"/l", l)
-        self._write_data(dir + "/data/"+str_dir+"/unlmax", numpy.amax(abs(tnl[:,1])))
+        self._write_data(dir + "/data/"+str_dir+"/unlmax", numpy.amax(abs(unl[:,1])))
 
 if __name__ == '__main__':
 
