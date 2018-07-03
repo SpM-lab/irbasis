@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/SpM-lab/irbasis.svg?branch=master)](https://travis-ci.org/SpM-lab)
+
+irbasis
+======
 Precomputed data of the intermediate representation(IR) basis functions and utilities written in Python and C++.
 
 The IR basis was proposed in 
