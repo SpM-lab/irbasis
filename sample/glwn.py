@@ -58,6 +58,9 @@ if __name__ == '__main__':
 
     pole = 2.0
 
+    # Load data from a HDF5 file included in the Python package
+    # If you do not install the Python package, please specify the location of a database file as
+    # basis = irbasis.load(stat,  Lambda, "./irbasis.h5")
     basis = irbasis.load(stat,  Lambda)
     Nl = basis.dim()
 
