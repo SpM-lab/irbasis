@@ -37,6 +37,3 @@ script:
   - python setup.py bdist_wheel
   - cd dist
   - pip install irbasis-*.whl
-  - cd $TRAVIS_BUILD_DIR/sample
-  - pip install matplotlib
-  - bash run_all_python_scripts.sh
