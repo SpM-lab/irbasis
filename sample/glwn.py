@@ -1,5 +1,8 @@
 from __future__ import print_function
 from builtins import range
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy

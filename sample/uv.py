@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy
@@ -35,7 +37,7 @@ if __name__ == '__main__':
     plt.legend(frameon=False,fontsize = 21)
     plt.grid()
     plt.tight_layout()
-    plt.savefig('u'+'.pdf')  
+    plt.savefig('u.png')  
     
     
     plt.figure(2)   
@@ -46,5 +48,5 @@ if __name__ == '__main__':
     plt.legend(frameon=False,fontsize = 21)
     plt.grid()
     plt.tight_layout()
-    plt.savefig('v'+'.pdf')  
+    plt.savefig('v.png')  
     plt.show()
