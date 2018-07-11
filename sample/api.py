@@ -4,8 +4,12 @@ import irbasis
 
 Lambda = 1000.0
 
-#Fermionic
+# Fermionic
+# If you has not installed the irbasis package via pip,
+# you must specify the location of a data file as follows.
+#   irbasis.load('F',  Lambda, './irbasis.h5')
 basis = irbasis.load('F',  Lambda)
+
 l = 0
 print("l =",l,",Lambda =", Lambda)
 
