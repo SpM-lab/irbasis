@@ -4,10 +4,11 @@ function(add_gtest test)
 
     add_executable(${test} ${source} ${gtest_src} ${header_files})
     target_link_libraries(${test} ${LINK_ALL})
+    target_include_directories(${test} PRIVATE ${HDF5_INCLUDE_DIRS})
     add_test(NAME ${test} COMMAND ${test} ${test_xml_output})
 endfunction(add_gtest)
 
-find_package(HDF5)
+find_package(HDF5 REQUIRED)
 
 list(APPEND LINK_ALL ${CMAKE_THREAD_LIBS_INIT} ${HDF5_C_LIBRARIES})
 
