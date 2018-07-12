@@ -28,12 +28,12 @@ class BasisSet(object):
         self._dim = dim
         self._Lambda = Lambda
 
-    def set_tnl(self, tnl, l):
+    def set_unl(self, unl, l):
         dir = self._prefix_name
         str_dir = "leven" if l%2 == 0 else "lodd"
-        self._write_data(dir + "/data/"+str_dir+"/Tnl", tnl)
+        self._write_data(dir + "/data/"+str_dir+"/unl", unl)
         self._write_data(dir + "/data/"+str_dir+"/l", l)
-        self._write_data(dir + "/data/"+str_dir+"/Tnlmax", numpy.amax(abs(tnl[:,1])))
+        self._write_data(dir + "/data/"+str_dir+"/unlmax", numpy.amax(abs(unl[:,1])))
 
 if __name__ == '__main__':
 
@@ -81,9 +81,9 @@ if __name__ == '__main__':
     nvec_long = numpy.array([10**3, 10**4, 10**5, 10**6, 10**7, 10**8])
     nvec = numpy.append(nvec_short, nvec_long)
     Nodd_max = b.dim()-1 if b.dim()%2==0 else b.dim()-2
-    Tnl_odd = numpy.array([ (int(n), b.compute_Tnl_safe(int(n), Nodd_max)) for n in nvec])
-    irset.set_tnl(Tnl_odd, Nodd_max)
+    unl_odd = numpy.array([ (int(n), b.compute_unl_safe(int(n), Nodd_max)) for n in nvec])
+    irset.set_unl(unl_odd, Nodd_max)
     Neven_max = b.dim()-1 if b.dim()%2==1 else b.dim()-2
-    Tnl_even = numpy.array([ (int(n), b.compute_Tnl_safe(int(n), Neven_max)) for n in nvec])
-    irset.set_tnl(Tnl_even, Neven_max)
+    unl_even = numpy.array([ (int(n), b.compute_unl_safe(int(n), Neven_max)) for n in nvec])
+    irset.set_unl(unl_even, Neven_max)
     

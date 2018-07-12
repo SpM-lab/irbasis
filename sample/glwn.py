@@ -1,5 +1,8 @@
 from __future__ import print_function
 from builtins import range
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy
@@ -52,12 +55,15 @@ class transformer(object):
 if __name__ == '__main__':
     beta = 100.0
     
-    stat = 'B' # 'F' for Fermionic or 'B' for Bosonic
+    stat = 'F' # 'F' for fermionic basis or 'B' for bosonic basis
     Lambda = 1000.0
     wmax = Lambda/beta
 
     pole = 2.0
 
+    # Load data from a HDF5 file included in the Python package
+    # If you do not install the Python package, please specify the location of a database file as
+    # basis = irbasis.load(stat,  Lambda, "./irbasis.h5")
     basis = irbasis.load(stat,  Lambda)
     Nl = basis.dim()
 
@@ -80,52 +86,33 @@ if __name__ == '__main__':
     elif stat == 'F':
         Sl = numpy.sqrt(beta * wmax / 2) * numpy.array([basis.sl(l) for l in range(Nl)])    
     Gl_ref = - Sl * rhol
-    
    
-    #for l in range(Nl):
-        #print(l, float(Gl[l]), float(Gl_ref[l]))
-        #plt.scatter(numpy.arange(Nl),numpy.abs(Gl))
-        #plt.scatter(numpy.arange(Nl),numpy.abs(Gl_ref))
-        #plt.scatter(numpy.arange(Nl),numpy.abs(Gl_ref -Gl))
-        
-        
-    plt.xlim(10**0,100000)
-    plt.yscale("log")
-    plt.xscale("log")
-    point = []
-    N = 100000
-    for x in range(50):
-        point.append(N * numpy.exp(-x/3))
+    # Plot relative errors in G(iwn)
+    n_min, n_max = 1, 1E+5
+    n_points = 50
+
+    point = numpy.exp(numpy.linspace(numpy.log(n_min), numpy.log(n_max), n_points))
+    point = numpy.array(point, dtype=int)
     
-    #plt.show()
-    # Transform Gl to Matsubara frequency domain
-    #nvec = numpy.array([0, 10, 100, 1000, 10000, 100000, -10])
-    #nvec = numpy.arange(100)
-    #Niw = len(nvec)
-    Unl = numpy.sqrt(beta) * basis.compute_Tnl(point)
+    Unl = numpy.sqrt(beta) * basis.compute_unl(point)
     Giw = numpy.dot(Unl, Gl)
 
     # Compare the result with the exact one 1/(i w_n - pole)
     Glist = []
-    p = 0
-    for n in point:
+    for p in range(n_points):
+        n = point[p]
         if stat == 'B':
             wn = (2*n ) * numpy.pi/beta
             ref = pole/(1J * wn - pole)
         elif stat == 'F':
             wn = (2*n +1) * numpy.pi/beta
             ref =  1/(1J * wn - pole)
-        #wnlist.append(1/wn)
-        #reflist.append(ref.real)
-    #print(wnlist,reflist)
-    #plt.scatter(point,wnlist)
-    #plt.scatter(point,reflist)
-        #plt.scatter(n,ref)
         Glist.append(numpy.abs((Giw[p] - ref)/ref))
-        p += 1
-    plt.scatter(point,Glist)
 
+    plt.xlim(n_min, n_max)
+    plt.yscale("log")
+    plt.xscale("log")
+    plt.scatter(point,Glist)
     plt.ylabel(r'$\rm{|(Giw -ref)/ref|}$',fontsize = 21)
     plt.xlabel(r'$n$',fontsize = 21)
     plt.savefig('subtrGiw'+'.pdf')  
-        

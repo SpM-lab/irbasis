@@ -24,30 +24,30 @@ public:
     Lambda = internal::hdf5_read_scalar<double>(file, prefix + std::string("/info/Lambda"));
     dim = internal::hdf5_read_scalar<int>(file, prefix + std::string("/info/dim"));
 
-    //read Tnl_odd
+    //read unl_odd
     internal::multi_array<std::complex<double>, 2>
-        data_odd = internal::load_multi_array<std::complex<double>, 2>(file, prefix + std::string("/data/lodd/Tnl"));
-    tnl_odd.resize(data_odd.extent(0));
+        data_odd = internal::load_multi_array<std::complex<double>, 2>(file, prefix + std::string("/data/lodd/unl"));
+    unl_odd.resize(data_odd.extent(0));
     n_odd.resize(data_odd.extent(0));
     for (int i = 0; i < data_odd.extent(0); i++) {
       n_odd[i] = static_cast<long long> (data_odd(i, 0).real());
-      tnl_odd[i] = data_odd(i, 1);
+      unl_odd[i] = data_odd(i, 1);
     }
 
-    tnl_odd_max = internal::hdf5_read_scalar<double>(file, prefix + std::string("/data/lodd/Tnlmax"));
+    unl_odd_max = internal::hdf5_read_scalar<double>(file, prefix + std::string("/data/lodd/unlmax"));
     odd_l = internal::hdf5_read_scalar<int>(file, prefix + std::string("/data/lodd/l"));
 
-    //read Tnl_even
+    //read unl_even
     internal::multi_array<std::complex<double>, 2>
-        data_even = internal::load_multi_array<std::complex<double>, 2>(file, prefix + std::string("/data/leven/Tnl"));
-    tnl_even_max = internal::hdf5_read_scalar<double>(file, prefix + std::string("/data/leven/Tnlmax"));
+        data_even = internal::load_multi_array<std::complex<double>, 2>(file, prefix + std::string("/data/leven/unl"));
+    unl_even_max = internal::hdf5_read_scalar<double>(file, prefix + std::string("/data/leven/unlmax"));
     even_l = internal::hdf5_read_scalar<int>(file, prefix + std::string("/data/leven/l"));
 
-    tnl_even.resize(data_even.extent(0));
+    unl_even.resize(data_even.extent(0));
     n_even.resize(data_even.extent(0));
     for (int i = 0; i < data_odd.extent(0); i++) {
       n_even[i] = static_cast<long long> (data_even(i, 0).real());
-      tnl_even[i] = data_even(i, 1);
+      unl_even[i] = data_even(i, 1);
     }
     H5Fclose(file);
   }
@@ -55,14 +55,14 @@ public:
   double Lambda;
   int dim;
 
-  std::vector<std::complex<double> > tnl_odd;
+  std::vector<std::complex<double> > unl_odd;
   std::vector<long long> n_odd;
-  double tnl_odd_max;
+  double unl_odd_max;
   int odd_l;
 
-  std::vector<std::complex<double> > tnl_even;
+  std::vector<std::complex<double> > unl_even;
   std::vector<long long> n_even;
-  double tnl_even_max;
+  double unl_even_max;
   int even_l;
 };
 
@@ -153,106 +153,106 @@ double check_data_tail(basis bs, refdata rb, std::string _statics) {
   //Check odd-l
   int l = rb.odd_l;
   std::vector<long long> n(1, 1e+8);
-  std::vector<std::vector<std::complex<double> > > Tnl = bs.compute_Tnl(n);
-  double Tnl_limit, Tnl_coeff;
+  std::vector<std::vector<std::complex<double> > > unl = bs.compute_unl(n);
+  double unl_limit, unl_coeff;
   if (_statics == "f") {
-    Tnl_limit = -(bs.d_ulx(l, 1, 1) + bs.d_ulx(l, -1, 1)) / (M_PI * M_PI * sqrt(2.0));
-    Tnl_coeff = Tnl[0][l].real() * n[0] * n[0];
+    unl_limit = -(bs.d_ulx(l, 1, 1) + bs.d_ulx(l, -1, 1)) / (M_PI * M_PI * sqrt(2.0));
+    unl_coeff = unl[0][l].real() * n[0] * n[0];
   } else {
-    Tnl_limit = -(bs.ulx(l, 1) - bs.ulx(l, -1)) / (M_PI * sqrt(2.0));
-    Tnl_coeff = Tnl[0][l].imag() * n[0];
+    unl_limit = -(bs.ulx(l, 1) - bs.ulx(l, -1)) / (M_PI * sqrt(2.0));
+    unl_coeff = unl[0][l].imag() * n[0];
   }
-  double dTnl_coeff = std::abs(Tnl_limit - Tnl_coeff);
-  if (std::abs(Tnl_limit) > 1e-12)
-    dTnl_coeff /= std::abs(Tnl_limit);
+  double dunl_coeff = std::abs(unl_limit - unl_coeff);
+  if (std::abs(unl_limit) > 1e-12)
+    dunl_coeff /= std::abs(unl_limit);
 
   //Check even-l
   l = rb.even_l;
   if (_statics == "f") {
-    Tnl_limit = (bs.ulx(l, 1) + bs.ulx(l, -1)) / (M_PI * sqrt(2.0));
-    Tnl_coeff = Tnl[0][l].imag() * n[0];
+    unl_limit = (bs.ulx(l, 1) + bs.ulx(l, -1)) / (M_PI * sqrt(2.0));
+    unl_coeff = unl[0][l].imag() * n[0];
   } else {
-    Tnl_limit = (bs.d_ulx(l, 1, 1) - bs.d_ulx(l, -1, 1)) / (M_PI * M_PI * sqrt(2.0));
-    Tnl_coeff = Tnl[0][l].real() * n[0] * n[0];
+    unl_limit = (bs.d_ulx(l, 1, 1) - bs.d_ulx(l, -1, 1)) / (M_PI * M_PI * sqrt(2.0));
+    unl_coeff = unl[0][l].real() * n[0] * n[0];
   }
-  double dTnl_coeff_even = std::abs(Tnl_limit - Tnl_coeff);
-  if (std::abs(Tnl_limit) > 1e-12)
-    dTnl_coeff_even /= std::abs(Tnl_limit);
-  if (dTnl_coeff_even > dTnl_coeff)
-    dTnl_coeff = dTnl_coeff_even;
-  return dTnl_coeff;
+  double dunl_coeff_even = std::abs(unl_limit - unl_coeff);
+  if (std::abs(unl_limit) > 1e-12)
+    dunl_coeff_even /= std::abs(unl_limit);
+  if (dunl_coeff_even > dunl_coeff)
+    dunl_coeff = dunl_coeff_even;
+  return dunl_coeff;
 }
 
 double check_data(basis bs, refdata rb, std::string _statics) {
   //Check odd-l
   int l = rb.odd_l;
-  std::vector<std::vector<std::complex<double> > > Tnl = bs.compute_Tnl(rb.n_odd);
-  double dTnl_max = std::abs(Tnl[0][l] - rb.tnl_odd[0]);
-  for (int i = 1; i < rb.tnl_odd.size(); i++) {
-    double tmp = std::abs(Tnl[i][l] - rb.tnl_odd[i]);
-    if (tmp > dTnl_max)
-      dTnl_max = tmp;
+  std::vector<std::vector<std::complex<double> > > unl = bs.compute_unl(rb.n_odd);
+  double dunl_max = std::abs(unl[0][l] - rb.unl_odd[0]);
+  for (int i = 1; i < rb.unl_odd.size(); i++) {
+    double tmp = std::abs(unl[i][l] - rb.unl_odd[i]);
+    if (tmp > dunl_max)
+      dunl_max = tmp;
   }
-  dTnl_max /= std::abs(rb.tnl_odd_max);
+  dunl_max /= std::abs(rb.unl_odd_max);
 
   //Check even-l
   l = rb.even_l;
-  Tnl = bs.compute_Tnl(rb.n_even);
-  double dTnl_max_even = std::abs(Tnl[0][l] - rb.tnl_even[0]);
-  for (int i = 1; i < rb.tnl_even.size(); i++) {
-    double tmp = std::abs(Tnl[i][l] - rb.tnl_even[i]);
-    if (tmp > dTnl_max_even)
-      dTnl_max_even = tmp;
+  unl = bs.compute_unl(rb.n_even);
+  double dunl_max_even = std::abs(unl[0][l] - rb.unl_even[0]);
+  for (int i = 1; i < rb.unl_even.size(); i++) {
+    double tmp = std::abs(unl[i][l] - rb.unl_even[i]);
+    if (tmp > dunl_max_even)
+      dunl_max_even = tmp;
   }
-  dTnl_max_even /= std::abs(rb.tnl_even_max);
-  if (dTnl_max < dTnl_max_even)
-    dTnl_max = dTnl_max_even;
+  dunl_max_even /= std::abs(rb.unl_even_max);
+  if (dunl_max < dunl_max_even)
+    dunl_max = dunl_max_even;
 
-  return dTnl_max;
+  return dunl_max;
 }
 
-TEST(interpolation, Tnl_limit) {
+TEST(interpolation, unl_limit) {
 
   basis b10f("../irbasis.h5", "/basis_f-mp-Lambda10.0_np8");
-  refdata ref10f("../tnl_safe_ref.h5", "/basis_f-mp-Lambda10.0");
-  double dTnl_coeff = check_data_tail(b10f, ref10f, "f");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10f("../unl_safe_ref.h5", "/basis_f-mp-Lambda10.0");
+  double dunl_coeff = check_data_tail(b10f, ref10f, "f");
+  ASSERT_LE(dunl_coeff, 1e-7);
 
   basis b10000f("../irbasis.h5", "/basis_f-mp-Lambda10000.0_np8");
-  refdata ref10000f("../tnl_safe_ref.h5", "/basis_f-mp-Lambda10000.0");
-  dTnl_coeff = check_data_tail(b10000f, ref10000f, "f");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10000f("../unl_safe_ref.h5", "/basis_f-mp-Lambda10000.0");
+  dunl_coeff = check_data_tail(b10000f, ref10000f, "f");
+  ASSERT_LE(dunl_coeff, 1e-7);
 
   basis b10b("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
-  refdata ref10b("../tnl_safe_ref.h5", "/basis_b-mp-Lambda10.0");
-  dTnl_coeff = check_data_tail(b10b, ref10b, "b");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10b("../unl_safe_ref.h5", "/basis_b-mp-Lambda10.0");
+  dunl_coeff = check_data_tail(b10b, ref10b, "b");
+  ASSERT_LE(dunl_coeff, 1e-7);
 
   basis b10000b("../irbasis.h5", "/basis_b-mp-Lambda10000.0_np8");
-  refdata ref10000b("../tnl_safe_ref.h5", "/basis_b-mp-Lambda10000.0");
-  dTnl_coeff = check_data_tail(b10000b, ref10000b, "b");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10000b("../unl_safe_ref.h5", "/basis_b-mp-Lambda10000.0");
+  dunl_coeff = check_data_tail(b10000b, ref10000b, "b");
+  ASSERT_LE(dunl_coeff, 1e-7);
 }
 
-TEST(interpolation, Tnl) {
+TEST(interpolation, unl) {
 
   basis b10f("../irbasis.h5", "/basis_f-mp-Lambda10.0_np8");
-  refdata ref10f("../tnl_safe_ref.h5", "/basis_f-mp-Lambda10.0");
-  double dTnl_coeff = check_data(b10f, ref10f, "f");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10f("../unl_safe_ref.h5", "/basis_f-mp-Lambda10.0");
+  double dunl_coeff = check_data(b10f, ref10f, "f");
+  ASSERT_LE(dunl_coeff, 1e-7);
 
   basis b10000f("../irbasis.h5", "/basis_f-mp-Lambda10000.0_np8");
-  refdata ref10000f("../tnl_safe_ref.h5", "/basis_f-mp-Lambda10000.0");
-  dTnl_coeff = check_data(b10000f, ref10000f, "f");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10000f("../unl_safe_ref.h5", "/basis_f-mp-Lambda10000.0");
+  dunl_coeff = check_data(b10000f, ref10000f, "f");
+  ASSERT_LE(dunl_coeff, 1e-7);
 
   basis b10b("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
-  refdata ref10b("../tnl_safe_ref.h5", "/basis_b-mp-Lambda10.0");
-  dTnl_coeff = check_data(b10b, ref10b, "b");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10b("../unl_safe_ref.h5", "/basis_b-mp-Lambda10.0");
+  dunl_coeff = check_data(b10b, ref10b, "b");
+  ASSERT_LE(dunl_coeff, 1e-7);
 
   basis b10000b("../irbasis.h5", "/basis_b-mp-Lambda10000.0_np8");
-  refdata ref10000b("../tnl_safe_ref.h5", "/basis_b-mp-Lambda10000.0");
-  dTnl_coeff = check_data(b10000b, ref10000b, "b");
-  ASSERT_LE(dTnl_coeff, 1e-7);
+  refdata ref10000b("../unl_safe_ref.h5", "/basis_b-mp-Lambda10000.0");
+  dunl_coeff = check_data(b10000b, ref10000b, "b");
+  ASSERT_LE(dunl_coeff, 1e-7);
 }

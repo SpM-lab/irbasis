@@ -2,6 +2,9 @@ from __future__ import print_function
 #from builtins import range
 
 import numpy as np
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy
@@ -68,7 +71,7 @@ if __name__ == '__main__':
 
     #assert numpy.all(numpy.abs(gl[:-1]) < 1e-8)
     #assert numpy.abs(gl[-1] - numpy.sqrt(beta / 2)) < 1e-8
-    Tn = basis.compute_Tnl([0])
+    Tn = basis.compute_unl([0])
     #print(Tn)
     Tnr = Tn.real
     #print(Tnr)
@@ -91,7 +94,7 @@ if __name__ == '__main__':
     plt.xlabel(r'$x$',fontsize = 18)
     plt.tick_params(labelsize=21)
     #plt.plot(mi,Tn.imag[0,:])
-    plt.ylabel(r'${}[Tnl^{}]$'.format(r"\rm{Re}",r"{\rm{F}}"),fontsize = 21)
+    plt.ylabel(r'${}[unl^{}]$'.format(r"\rm{Re}",r"{\rm{F}}"),fontsize = 21)
     plt.legend(frameon=False,fontsize = 21)
     plt.tight_layout()
     #plt.savefig('u'+'.pdf')  

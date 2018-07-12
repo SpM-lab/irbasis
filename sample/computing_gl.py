@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # Transform Gl to Matsubara frequency domain
     nvec = numpy.array([0, 10, 100, 1000, 10000, 100000, -10])
     Niw = len(nvec)
-    Unl = numpy.sqrt(beta) * basis.compute_Tnl(nvec)
+    Unl = numpy.sqrt(beta) * basis.compute_unl(nvec)
     Giw = numpy.dot(Unl, Gl)
 
     # Compare the result with the exact one 1/(i w_n - pole)
