@@ -2,7 +2,7 @@ function(add_gtest test)
     set(source "${ARGV1}/${test}.cpp")
     set(gtest_src "${ARGV1}/gtest_main.cc;${ARGV1}/gtest-all.cc")
 
-    add_executable(${test} ${source} ${gtest_src} ${header_files})
+    add_executable(${test} ${source} ${gtest_src} ${header_files} dummy.cpp)
     target_link_libraries(${test} ${LINK_ALL})
     target_include_directories(${test} PRIVATE ${HDF5_INCLUDE_DIRS})
     add_test(NAME ${test} COMMAND ${test} ${test_xml_output})

@@ -14,7 +14,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='irbasis',
 
-    version='0.2',
+    version='1.0',
 
     description='Python libraries for irbasis',
 
@@ -33,7 +33,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
