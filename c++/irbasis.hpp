@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdexcept>
+#include <algorithm>
 #include <iostream>
 #include <complex>
 #include <cmath>
