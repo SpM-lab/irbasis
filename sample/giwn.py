@@ -4,7 +4,10 @@ from builtins import range
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-plt.rc('text', usetex=True)
+
+matplotlib.rcParams['font.family'] = 'serif'
+matplotlib.rcParams['mathtext.fontset'] = 'cm'
+matplotlib.rcParams['mathtext.rm'] = 'serif'
 
 import numpy
 import irbasis
@@ -95,7 +98,7 @@ if __name__ == '__main__':
     plt.legend(frameon=False,fontsize = 21)
     plt.tight_layout()
     #plt.show()
-    plt.savefig('Gl.pdf')  
+    plt.savefig('Gl.png')  
    
     # In this special case, Gl can be computed from rho_l.
     Gl = trans.compute_gl(gtau, Nl)
@@ -143,11 +146,11 @@ if __name__ == '__main__':
         p += 1
        
     
-    plt.scatter(point,Glist,marker = "o",label = r"$\rm{Exact} \hspace{1mm}$"+r"$G(i\omega_n)$")
-    plt.scatter(point,reflist,marker = "x",label = r"$\rm{Reconstructed\hspace{1mm} from \hspace{1mm}}$"+r"$G_l$")
+    plt.scatter(point,Glist,marker = "o",label = r"$\rm{Exact} \hspace{0.5}$"+r"$G(i\omega_n)$")
+    plt.scatter(point,reflist,marker = "x",label = r"$\rm{Reconstructed\hspace{0.5} from \hspace{0.5}}$"+r"$G_l$")
     plt.tick_params(labelsize=21)
     plt.ylabel(r'$|G(iw_n)|$',fontsize = 21)
     plt.xlabel(r'$n$',fontsize = 21)
     plt.legend(frameon=False,fontsize = 21)
     plt.tight_layout()
-    plt.savefig('Giw.pdf')  
+    plt.savefig('Giw.png')  
