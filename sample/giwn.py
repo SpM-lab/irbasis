@@ -95,7 +95,6 @@ if __name__ == '__main__':
     plt.tight_layout()
     #plt.show()
     plt.savefig('Gl.pdf')  
-
    
     # In this special case, Gl can be computed from rho_l.
     Gl = trans.compute_gl(gtau, Nl)
@@ -106,7 +105,9 @@ if __name__ == '__main__':
         rhol = numpy.sqrt(1/wmax) * numpy.array([basis.vly(l, pole/wmax) for l in range(Nl)])
         Sl = numpy.sqrt(beta * wmax / 2) * numpy.array([basis.sl(l) for l in range(Nl)])    
     Gl_ref = - Sl * rhol
- 
+    
+    # Check gl is equal to Gl_ref
+    numpy.testing.assert_allclose(gl, Gl_ref, atol=1e-10)
         
     plt.figure(2)   
     plt.xlim(1,1e+5)
@@ -137,7 +138,7 @@ if __name__ == '__main__':
         reflist.append(numpy.abs(ref))
         
         # Giw is consistent with ref
-        assert (numpy.abs(Giw[p]) -numpy.abs(ref)) < 1e-8
+        assert numpy.abs(Giw[p] - ref) < 1e-8
         p += 1
        
     
