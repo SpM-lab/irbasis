@@ -3,9 +3,11 @@ from __future__ import print_function
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+plt.rc('text', usetex=True)
 
 import numpy
 import irbasis
+
 
 if __name__ == '__main__':
     Lambda = 1000.0

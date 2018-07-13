@@ -4,6 +4,7 @@ from builtins import range
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+plt.rc('text', usetex=True)
 
 import numpy
 import irbasis
