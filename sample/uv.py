@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 import numpy
 import irbasis
-plt.rc('text', usetex=True)
 
 if __name__ == '__main__':
     Lambda = 1000.0
@@ -49,4 +48,4 @@ if __name__ == '__main__':
     plt.grid()
     plt.tight_layout()
     plt.savefig('v.png')  
-    plt.show()
+    #plt.show()
