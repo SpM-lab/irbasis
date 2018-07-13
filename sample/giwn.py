@@ -69,20 +69,50 @@ if __name__ == '__main__':
         gtau = lambda tau: - pole * numpy.exp(- pole * tau)/(1 - numpy.exp(- beta * pole))
     elif stat == 'F':
         gtau = lambda tau: - numpy.exp(- pole * tau)/(1 + numpy.exp(- beta * pole))
+    
+    #Compute expansion coefficients in IR by numerical integration
+    gl = trans.compute_gl(gtau, Nl)
 
-    # Compute expansion coefficients in IR by numerical integration
-    Gl = trans.compute_gl(gtau, Nl)
+    Tn = basis.compute_Tnl([0])
+
+    Tnr = Tn.real
+
+    Tnre = Tnr.size
+    
+    mi = numpy.linspace(0,Tnre,Tnre)
+
+    print("gl",gl)
+    plt.figure(1)
+    for l in range(Nl):
+        plt.scatter(l,numpy.abs(gl.real[l]),color = "r")
+        
+    plt.xlim(1,100000)
+    plt.ylim(10**-4,1)
+ 
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel(r'$l$',fontsize = 21)
+    plt.tick_params(labelsize=21)
+ 
+    plt.ylabel(r'$|G_l|$',fontsize = 21)
+    plt.legend(frameon=False,fontsize = 21)
+    plt.tight_layout()
+    plt.show()
+
+   
 
     # In this special case, Gl can be computed from rho_l.
-    rhol = numpy.sqrt(1/wmax) * numpy.array([basis.vly(l, pole/wmax) for l in range(Nl)])
+    Gl = trans.compute_gl(gtau, Nl)
     if stat == 'B':
+        rhol = pole*numpy.sqrt(1/wmax) * numpy.array([basis.vly(l, pole/wmax) for l in range(Nl)])
         Sl = numpy.sqrt(beta * wmax**3 / 2) * numpy.array([basis.sl(l) for l in range(Nl)])
     elif stat == 'F':
+        rhol = numpy.sqrt(1/wmax) * numpy.array([basis.vly(l, pole/wmax) for l in range(Nl)])
         Sl = numpy.sqrt(beta * wmax / 2) * numpy.array([basis.sl(l) for l in range(Nl)])    
     Gl_ref = - Sl * rhol
  
         
-        
+    plt.figure(2)   
     plt.xlim(10**0,100000)
     plt.yscale("log")
     plt.xscale("log")
@@ -109,6 +139,7 @@ if __name__ == '__main__':
         Glist.append(numpy.abs(Giw[p]))
         reflist.append(numpy.abs(ref))
         p += 1
+    
     plt.scatter(point,Glist,marker = "o",label = r"$\rm{Exact} \hspace{1mm}$"+r"$G(i\omega_n)$")
     plt.scatter(point,reflist,marker = "x",label = r"$\rm{Reconstructed\hspace{1mm} by \hspace{1mm}IR}$")
     plt.tick_params(labelsize=21)
@@ -116,5 +147,6 @@ if __name__ == '__main__':
     plt.xlabel(r'$n$',fontsize = 21)
     plt.legend(frameon=False,fontsize = 21)
     plt.tight_layout()
-    #plt.savefig('Giw'+'.pdf')  
+    #plt.savefig('Giw'+'.pdf')
+    plt.show()
         
