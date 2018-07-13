@@ -37,3 +37,6 @@ script:
   - python setup.py bdist_wheel
   - cd dist
   - pip install irbasis-*.whl
+  # run sample scripts
+  - cd $TRAVIS_BUILD_DIR/sample
+  - bash run_all_python_scripts.sh 
