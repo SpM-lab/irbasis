@@ -57,6 +57,8 @@ if __name__ == '__main__':
     wmax = Lambda/beta
 
     pole = 2.0
+    
+    assert numpy.abs(pole) <= wmax
 
     basis = irbasis.load(stat,  Lambda)
     Nl = basis.dim()
@@ -73,21 +75,12 @@ if __name__ == '__main__':
     #Compute expansion coefficients in IR by numerical integration
     gl = trans.compute_gl(gtau, Nl)
 
-    Tn = basis.compute_Tnl([0])
-
-    Tnr = Tn.real
-
-    Tnre = Tnr.size
-    
-    mi = numpy.linspace(0,Tnre,Tnre)
-
-    print("gl",gl)
     plt.figure(1)
     for l in range(Nl):
         plt.scatter(l,numpy.abs(gl.real[l]),color = "r")
         
-    plt.xlim(1,100000)
-    plt.ylim(10**-4,1)
+    plt.xlim(1,1e+5)
+    plt.ylim(1e-4,1)
  
     plt.xscale("log")
     plt.yscale("log")
@@ -100,7 +93,6 @@ if __name__ == '__main__':
     plt.show()
 
    
-
     # In this special case, Gl can be computed from rho_l.
     Gl = trans.compute_gl(gtau, Nl)
     if stat == 'B':
@@ -113,9 +105,10 @@ if __name__ == '__main__':
  
         
     plt.figure(2)   
-    plt.xlim(10**0,100000)
+    plt.xlim(1,1e+5)
     plt.yscale("log")
     plt.xscale("log")
+    
     point = []
     N = 100000
     for x in range(50):
@@ -138,15 +131,19 @@ if __name__ == '__main__':
 
         Glist.append(numpy.abs(Giw[p]))
         reflist.append(numpy.abs(ref))
+        
+        # Giw is consistent with ref
+        assert (numpy.abs(Giw[p]) -numpy.abs(ref)) < 1e-8
         p += 1
+       
     
     plt.scatter(point,Glist,marker = "o",label = r"$\rm{Exact} \hspace{1mm}$"+r"$G(i\omega_n)$")
-    plt.scatter(point,reflist,marker = "x",label = r"$\rm{Reconstructed\hspace{1mm} by \hspace{1mm}IR}$")
+    plt.scatter(point,reflist,marker = "x",label = r"$\rm{Reconstructed\hspace{1mm} from \hspace{1mm}$"+r"$G_l$")
     plt.tick_params(labelsize=21)
-    plt.ylabel(r'$|(G(iw_n)|$',fontsize = 21)
+    plt.ylabel(r'$|G(iw_n)|$',fontsize = 21)
     plt.xlabel(r'$n$',fontsize = 21)
     plt.legend(frameon=False,fontsize = 21)
     plt.tight_layout()
-    #plt.savefig('Giw'+'.pdf')
+    #plt.savefig('Giw'+'.png')
     plt.show()
         
