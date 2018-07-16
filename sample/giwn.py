@@ -80,11 +80,11 @@ if __name__ == '__main__':
         gtau = lambda tau: - numpy.exp(- pole * tau)/(1 + numpy.exp(- beta * pole))
     
     #Compute expansion coefficients in IR by numerical integration
-    gl = trans.compute_gl(gtau, Nl)
+    Gl = trans.compute_gl(gtau, Nl)
 
     plt.figure(1)
     for l in range(Nl):
-        plt.scatter(l,numpy.abs(gl.real[l]),color = "r")
+        plt.scatter(l,numpy.abs(Gl.real[l]),color = "r")
         
     plt.xlim(1,1e+5)
     plt.ylim(1e-4,1)
@@ -101,7 +101,6 @@ if __name__ == '__main__':
     plt.savefig('Gl.png')  
    
     # In this special case, Gl can be computed from rho_l.
-    Gl = trans.compute_gl(gtau, Nl)
     if stat == 'B':
         rhol = pole*numpy.sqrt(1/wmax) * numpy.array([basis.vly(l, pole/wmax) for l in range(Nl)])
         Sl = numpy.sqrt(beta * wmax**3 / 2) * numpy.array([basis.sl(l) for l in range(Nl)])
@@ -111,7 +110,7 @@ if __name__ == '__main__':
     Gl_ref = - Sl * rhol
     
     # Check gl is equal to Gl_ref
-    numpy.testing.assert_allclose(gl, Gl_ref, atol=1e-10)
+    numpy.testing.assert_allclose(Gl, Gl_ref, atol=1e-10)
         
     plt.figure(2)   
     plt.xlim(1,1e+5)
