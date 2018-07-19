@@ -753,8 +753,13 @@ public:
     return sl_(l);
   }
 
-  double ulx(int l, double x) const {
+  double ulx(int l, double x) const throw(std::runtime_error) {
     using namespace internal;
+
+    if (std::abs(x) > 1) {
+        throw std::runtime_error("x must be in [-1,1]!");
+    }
+
     if (x >= 0) {
       return interpolate(x, ulx_.data.make_view(l), ulx_.section_edges);
     } else {
@@ -762,8 +767,13 @@ public:
     }
   }
 
-  void ulx_all_l(double x, std::vector<double> &ulx_result) const {
+  void ulx_all_l(double x, std::vector<double> &ulx_result) const throw(std::runtime_error) {
     using namespace internal;
+
+    if (std::abs(x) > 1) {
+        throw std::runtime_error("x must be in [-1,1]!");
+    }
+
     ulx_result.resize(ulx_.nl);
     interpolate_all_l(std::abs(x), ulx_.data_for_vec, ulx_.section_edges, ulx_result);
     if (x < 0) {
@@ -807,8 +817,13 @@ public:
     return ref_data;
   }
 
-  double d_ulx(int l, double x, std::size_t order) const {
+  double d_ulx(int l, double x, std::size_t order) const throw(std::runtime_error) {
     using namespace internal;
+
+    if (std::abs(x) > 1) {
+        throw std::runtime_error("x must be in [-1,1]!");
+    }
+
     if (x >= 0) {
       return interpolate_derivative(x, order, ulx_.data.make_view(l), ulx_.section_edges);
     } else {
@@ -816,14 +831,22 @@ public:
     }
   }
 
-  void d_ulx_all(int l, double x, std::vector<double> &d_ulx_result, const int section = -1) const {
+  void d_ulx_all(int l, double x, std::vector<double> &d_ulx_result, const int section = -1) const throw(std::runtime_error) {
     using namespace internal;
+
+    if (std::abs(x) > 1) {
+        throw std::runtime_error("x must be in [-1,1]!");
+    }
     assert(x >= 0);
     interpolate_derivative_all(x, ulx_.data.make_view(l), ulx_.section_edges, d_ulx_result, section);
   }
 
-  double vly(int l, double y) const {
+  double vly(int l, double y) const throw(std::runtime_error) {
     using namespace internal;
+
+    if (std::abs(y) > 1) {
+        throw std::runtime_error("y must be in [-1,1]!");
+    }
     if (y >= 0) {
       return interpolate(y, vly_.data.make_view(l), vly_.section_edges);
     } else {
@@ -831,8 +854,12 @@ public:
     }
   }
 
-  double d_vly(int l, double y, std::size_t order) const {
+  double d_vly(int l, double y, std::size_t order) const throw(std::runtime_error) {
     using namespace internal;
+
+    if (std::abs(y) > 1) {
+        throw std::runtime_error("y must be in [-1,1]!");
+    }
     if (y >= 0) {
       return interpolate_derivative(y, order, vly_.data.make_view(l), vly_.section_edges);
     } else {
