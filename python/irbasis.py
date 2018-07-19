@@ -117,12 +117,18 @@ class basis(object):
         return self._sl[l]
     
     def ulx(self, l, x):
+        if not -1 <= x <= 1:
+            raise RuntimeError("x should be in [-1,1]!")
+
         if x >= 0:
             return self._interpolate(x, self._ulx_data[l, :, :], self._ulx_section_edges)
         else:
             return self._interpolate(-x, self._ulx_data[l, :, :], self._ulx_section_edges) * _even_odd_sign(l)
 
     def ulx_all_l(self, x):
+        if not -1 <= x <= 1:
+            raise RuntimeError("x should be in [-1,1]!")
+
         ulx_data = self._interpolate_all_l(numpy.abs(x), self._ulx_data_for_vec, self._ulx_section_edges)
         if x < 0:
             # Flip the sign for odd l
@@ -138,6 +144,9 @@ class basis(object):
         return self._ulx_ref_data
         
     def d_ulx(self, l, x, order, section=-1):
+        if not -1 <= x <= 1:
+            raise RuntimeError("x should be in [-1,1]!")
+
         if x >= 0:
             return self._interpolate_derivative(x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section)
         else:
@@ -150,6 +159,9 @@ class basis(object):
             #return self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
 
     def vly(self, l, y):
+        if not -1 <= y <= 1:
+            raise RuntimeError("y should be in [-1,1]!")
+
         if y >= 0:
             return self._interpolate(y, self._vly_data[l,:,:], self._vly_section_edges)
         else:
@@ -164,6 +176,9 @@ class basis(object):
         return self._vly_ref_data
         
     def d_vly(self, l, y, order):
+        if not -1 <= y <= 1:
+            raise RuntimeError("y should be in [-1,1]!")
+
         if y >= 0:
             return self._interpolate_derivative(y, order, self._vly_data[l,:,:], self._vly_section_edges)
         else:
