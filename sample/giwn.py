@@ -39,7 +39,7 @@ class transformer(object):
         section_edges = numpy.setxor1d(section_edges_positive_half, -section_edges_positive_half)
         self._dim = basis.dim()
         self._beta = beta
-        self._x, self._w = _composite_leggauss(16, section_edges)
+        self._x, self._w = _composite_leggauss(12, section_edges)
 
         nx = len(self._x)
         self._u_smpl = numpy.zeros((nx, self._dim))
@@ -57,11 +57,11 @@ class transformer(object):
         return numpy.sqrt(self._beta / 2) * numpy.dot(gtau_smpl[:, :], self._u_smpl[:, 0:nl]).reshape((nl))
 
 if __name__ == '__main__':
-    beta = 100.0
     
     stat = 'F' # 'F' for Fermionic or 'B' for Bosonic
+    wmax = 10.0
     Lambda = 1000.0
-    wmax = Lambda/beta
+    beta = Lambda/wmax
 
     pole = 2.0
     
@@ -108,10 +108,18 @@ if __name__ == '__main__':
         rhol = numpy.sqrt(1/wmax) * numpy.array([basis.vly(l, pole/wmax) for l in range(Nl)])
         Sl = numpy.sqrt(beta * wmax / 2) * numpy.array([basis.sl(l) for l in range(Nl)])    
     Gl_ref = - Sl * rhol
-    
-    # Check gl is equal to Gl_ref
+
+    # Check Gl is equal to Gl_ref
     numpy.testing.assert_allclose(Gl, Gl_ref, atol=1e-10)
-        
+
+    # Reconstruct G(tau) from Gl
+    Nx = 1000
+    x_points = numpy.linspace(-1, 1, Nx)
+    A = numpy.sqrt(2/beta) * numpy.asarray([basis.ulx(l, x) for x in x_points for l in range(Nl)]).reshape((Nx, Nl))
+    Gtau_reconst = numpy.dot(A, Gl)
+    Gtau_ref = numpy.asarray([gtau((x+1)*beta/2) for x in x_points])
+    numpy.testing.assert_allclose(Gtau_reconst, Gtau_ref, atol=1e-12)
+
     plt.figure(2)   
     plt.xlim(1,1e+5)
     plt.yscale("log")
@@ -120,7 +128,7 @@ if __name__ == '__main__':
     point = []
     N = 100000
     for x in range(50):
-        point.append(int(N * numpy.exp(-x/3)))
+        point.append(int(N * numpy.exp(-x/3.)))
  
     Unl = numpy.sqrt(beta) * basis.compute_unl(point)
     Giw = numpy.dot(Unl, Gl)
