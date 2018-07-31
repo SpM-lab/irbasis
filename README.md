@@ -15,7 +15,7 @@ Below we will briefly describe this software.
 - [Usage](#usage)
 
 ## Structure
-We briefly describe files consisting this software below.
+We briefly describe files constituting this software below.
 
 * c++/irbasis.hpp<br>C++ library
 * python/irbasis.py<br>Python library
