@@ -110,6 +110,14 @@ class basis(object):
             assert self._vly_data.shape[1] == f[prefix+'/vly/ns'].value
             assert self._vly_data.shape[2] == f[prefix+'/vly/np'].value
             
+    @property
+    def Lambda(self):
+        return self._Lambda
+
+    @property
+    def statistics(self):
+        return self._statistics
+
     def dim(self):
         return self._dim
 

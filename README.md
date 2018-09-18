@@ -10,9 +10,13 @@ Please also check [our citation policy](https://github.com/SpM-lab/irbasis/wiki/
 Below we will briefly describe this software.
 
 # Table of Contents
+- [License](#license)
 - [Structure](#structure)
 - [Installation](#installation)
 - [Usage](#usage)
+
+## License
+This software is released under the MIT License, see LICENSE.txt. 
 
 ## Structure
 We briefly describe files constituting this software below.
