@@ -748,6 +748,19 @@ public:
     */
   int dim() const { return dim_; }
 
+  /**
+    * Return Lambda
+    * @return  Lambda
+    */
+  double Lambda() const { return Lambda_; }
+
+  /**
+    * Return statistics
+    * @return  string representing statistics "F" or "B"
+    */
+  std::string statistics() const { return statistics_; }
+
+
   double sl(int l) const throw(std::runtime_error) {
     assert(l >= 0 && l < dim());
     return sl_(l);

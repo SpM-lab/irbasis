@@ -66,6 +66,12 @@ public:
   int even_l;
 };
 
+TEST(interpolation, attributes) {
+  basis b10("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
+  ASSERT_EQ(10.0, b10.Lambda());
+  ASSERT_EQ("B", b10.statistics());
+}
+
 TEST(interpolation, check_ulx_b) {
   basis b10("../irbasis.h5", "/basis_b-mp-Lambda10.0_np8");
   std::vector<std::vector<double> > ref_data10 = b10.check_ulx();
