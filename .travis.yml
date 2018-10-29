@@ -32,7 +32,7 @@ script:
   - |
     cmake ../irbasis  \
     -DCMAKE_BUILD_TYPE=Debug
-  - make
+  - VERBOSE=1 make
   - make test
   - python setup.py bdist_wheel
   - cd dist
