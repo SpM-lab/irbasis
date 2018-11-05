@@ -7,8 +7,10 @@ import h5py
 import bisect
 from itertools import product
 
+
 def _even_odd_sign(l):
     return 1 if l%2==0 else -1
+
 
 def _compute_unl_tail(w_vec, stastics, deriv_x1):
     sign_statistics = 1 if stastics == 'B' else -1
@@ -112,19 +114,70 @@ class basis(object):
             
     @property
     def Lambda(self):
+        """
+        Dimensionless parameter of IR basis
+
+        Returns
+        -------
+            Lambda : float
+        """
         return self._Lambda
 
     @property
     def statistics(self):
+        """
+        Statistics
+
+        Returns
+        -------
+        statistics : string
+            "F" for fermions, "B" for bosons
+        """
         return self._statistics
 
     def dim(self):
+        """
+        Return dimension of basis
+
+        Returns
+        -------
+        dim : int
+        """
         return self._dim
 
     def sl(self, l):
+        """
+        Return the singular value for the l-th basis function
+
+        Parameters
+        ----------
+        l : int
+            index of the singular values/basis functions
+
+        Returns
+        sl : float
+            singular value
+        -------
+
+        """
         return self._sl[l]
     
     def ulx(self, l, x):
+        """
+        Return value of basis function for x
+
+        Parameters
+        ----------
+        l : int
+            index of basis functions
+        x : float
+            dimensionless parameter x (-1 <= x <= 1)
+
+        Returns
+        -------
+        ulx : float
+            value of basis function u_l(x)
+        """
         if not -1 <= x <= 1:
             raise RuntimeError("x should be in [-1,1]!")
 
@@ -134,6 +187,19 @@ class basis(object):
             return self._interpolate(-x, self._ulx_data[l, :, :], self._ulx_section_edges) * _even_odd_sign(l)
 
     def ulx_all_l(self, x):
+        """
+        Return value of basis function for x
+
+        Parameters
+        ----------
+        x : float
+            dimensionless parameter x (-1 <= x <= 1)
+
+        Returns
+        -------
+        ulx : 1D ndarray
+            values of basis functions u_l(x) for all l at the given x
+        """
         if not -1 <= x <= 1:
             raise RuntimeError("x should be in [-1,1]!")
 
@@ -143,15 +209,28 @@ class basis(object):
             ulx_data[1::2] *= -1
         return ulx_data
 
-    def check_ulx(self):
-        ulx_max = self._ulx_ref_max[2]
-        ulx_ref = numpy.array([ (_data[0], _data[1], abs(self.ulx(int(_data[0]-1), _data[1])-_data[3])/ulx_max ) for _data in self._ulx_ref_data[self._ulx_ref_data[:,2]==0]])
-        return(ulx_ref)
-        
-    def get_d_ulx_ref(self):
-        return self._ulx_ref_data
-        
+
     def d_ulx(self, l, x, order, section=-1):
+        """
+        Return (higher-order) derivatives of u_l(x)
+
+        Parameters
+        ----------
+        l : int
+            index of basis functions
+        x : int
+            dimensionless parameter x
+        order : int
+            order of derivative (>=0). 1 for the first derivative.
+        section : int
+            index of the section where x is located.
+
+        Returns
+        -------
+        d_ulx : float
+            (higher-order) derivative of u_l(x)
+
+        """
         if not -1 <= x <= 1:
             raise RuntimeError("x should be in [-1,1]!")
 
@@ -167,6 +246,21 @@ class basis(object):
             #return self._interpolate_derivatives(-x, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
 
     def vly(self, l, y):
+        """
+        Return value of basis function for y
+
+        Parameters
+        ----------
+        l : int
+            index of basis functions
+        y : float
+            dimensionless parameter y (-1 <= y <= 1)
+
+        Returns
+        -------
+        vly : float
+            value of basis function v_l(y)
+        """
         if not -1 <= y <= 1:
             raise RuntimeError("y should be in [-1,1]!")
 
@@ -175,15 +269,28 @@ class basis(object):
         else:
             return self._interpolate(-y, self._vly_data[l,:,:], self._vly_section_edges) * _even_odd_sign(l)
 
-    def check_vly(self):
-        vly_max = self._vly_ref_max[2]
-        vly_ref = numpy.array([ (_data[0], _data[1], abs(self.vly(int(_data[0]-1), _data[1])-_data[3])/vly_max ) for _data in self._vly_ref_data[ self._vly_ref_data[:,2]==0]])
-        return(vly_ref)
 
-    def get_d_vly_ref(self):
-        return self._vly_ref_data
-        
     def d_vly(self, l, y, order):
+        """
+        Return (higher-order) derivatives of v_l(y)
+
+        Parameters
+        ----------
+        l : int
+            index of basis functions
+        y : int
+            dimensionless parameter y
+        order : int
+            order of derivative (>=0). 1 for the first derivative.
+        section : int
+            index of the section where y is located.
+
+        Returns
+        -------
+        d_vly : float
+            (higher-order) derivative of v_l(y)
+
+        """
         if not -1 <= y <= 1:
             raise RuntimeError("y should be in [-1,1]!")
 
@@ -195,9 +302,18 @@ class basis(object):
 
     def compute_unl(self, n):
         """
-        Compute transformation matrix
-        :param n: array-like or int   index (indices) of Matsubara frequencies
-        :return: a 2d array of results
+        Compute transformation matrix from IR to Matsubara frequencies
+
+        Parameters
+        ----------
+        n : int or 1D ndarray of integers
+            Indices of Matsubara frequncies
+
+        Returns
+        -------
+        unl : 2D array of complex
+            The shape is (niw, nl) where niw is the dimension of the input "n" and nl is the dimension of the basis
+
         """
         if isinstance(n, int):
             num_n = 1
@@ -276,50 +392,59 @@ class basis(object):
         return result
 
     def num_sections_x(self):
+        """
+        Number of sections of piecewise polynomial representation of u_l(x)
+
+        Returns
+        -------
+        num_sections_x : int
+        """
         return self._ulx_data.shape[1]
 
     @property
     def section_edges_x(self):
+        """
+        End points of sections for u_l(x)
+
+        Returns
+        -------
+        section_edges_x : 1D ndarray of float
+        """
         return self._ulx_section_edges
 
     def num_sections_y(self):
+        """
+        Number of sections of piecewise polynomial representation of v_l(y)
+
+        Returns
+        -------
+        num_sections_y : int
+        """
         return self._vly_data.shape[1]
 
     @property
     def section_edges_y(self):
+        """
+        End points of sections for v_l(y)
+
+        Returns
+        -------
+        section_edges_y : 1D ndarray of float
+        """
         return self._vly_section_edges
 
     def _interpolate(self, x, data, section_edges):
-        """
-
-        :param x:
-        :param data:
-        :param section_edges:
-        :return:
-        """
         section_idx = min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
         return self._interpolate_impl(x - section_edges[section_idx], data[section_idx, :])
 
     def _interpolate_all_l(self, x, data, section_edges):
-        """
-
-        :param x:
-        :param data:
-        :param section_edges:
-        :return:
-        """
         section_idx = min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
         return self._interpolate_all_l_impl(x - section_edges[section_idx], data[section_idx, :, :])
 
     def _interpolate_derivative(self, x, order, data, section_edges, section=-1):
         """
+        If section = -1, the index is determined by binary search
 
-        :param x:
-        :param order:
-        :param data:
-        :param section_edges:
-        :param section: the index of section. if section = -1, the index is determined by binary search
-        :return:
         """
         section_idx = section if section >= 0 else min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
         coeffs = self._differentiate_coeff(data[section_idx, :], order)
@@ -327,12 +452,7 @@ class basis(object):
 
     def _interpolate_derivatives(self, x, data, section_edges, section=-1):
         """
-
-        :param x:
-        :param data:
-        :param section_edges:
-        :param section: the index of section. if section = -1, the index is determined by binary search
-        :return:
+        if section = -1, the index is determined by binary search
         """
         section_idx = section if section >= 0 else min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
 
@@ -349,11 +469,6 @@ class basis(object):
         return result
 
     def _interpolate_impl(self, dx, coeffs):
-        """
-        :param dx: coordinate where interpolated value is evalued
-        :param coeffs: expansion coefficients
-        :return:  interpolated value
-        """
         value = 0.0
         dx_power = 1.0
         for p in range(len(coeffs)):
@@ -364,9 +479,18 @@ class basis(object):
 
     def _interpolate_all_l_impl(self, dx, coeffs):
         """
-        :param dx: coordinate where interpolated value is evalued
-        :param coeffs: expansion coefficients (p, l)
-        :return:  interpolated value
+        Evaluate the value of a polynomial
+
+        Parameters
+        ----------
+        dx : float
+            coordinate where interpolated value is evalued
+        coeffs : 2D ndarray
+            expansion coefficients (p, l)
+
+        Returns
+        ----------
+        interpolated value
         """
         np, nl = coeffs.shape
         value = numpy.zeros((nl))
@@ -379,10 +503,16 @@ class basis(object):
 
     def _differentiate_coeff(self, coeffs, order):
         """
-        Compute expansion coefficients after differentiations
-        :param coeffs: coefficients
-        :param order: order of differentiation (1 is the first derivative)
-        :return:
+
+        Parameters
+        ----------
+        coeffs : coefficients of piecewise polynomial
+        order : order of differentiation (1 is for the first derivative)
+
+        Returns
+        -------
+        Coefficients representing derivatives
+
         """
         k = len(coeffs)
         coeffs_deriv = numpy.array(coeffs)
@@ -392,3 +522,19 @@ class basis(object):
             coeffs_deriv[k-1-o] = 0
 
         return coeffs_deriv
+
+    def _check_ulx(self):
+        ulx_max = self._ulx_ref_max[2]
+        ulx_ref = numpy.array([ (_data[0], _data[1], abs(self.ulx(int(_data[0]-1), _data[1])-_data[3])/ulx_max ) for _data in self._ulx_ref_data[self._ulx_ref_data[:,2]==0]])
+        return(ulx_ref)
+
+    def _get_d_ulx_ref(self):
+        return self._ulx_ref_data
+
+    def _check_vly(self):
+        vly_max = self._vly_ref_max[2]
+        vly_ref = numpy.array([ (_data[0], _data[1], abs(self.vly(int(_data[0]-1), _data[1])-_data[3])/vly_max ) for _data in self._vly_ref_data[ self._vly_ref_data[:,2]==0]])
+        return(vly_ref)
+
+    def _get_d_vly_ref(self):
+        return self._vly_ref_data

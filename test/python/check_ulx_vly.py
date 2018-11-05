@@ -13,11 +13,11 @@ class TestMethods(unittest.TestCase):
         for _lambda in [10.0, 10000.0]:
             prefix = "basis_f-mp-Lambda" + str(_lambda) + "_np8"
             rb = ir.basis("../irbasis.h5", prefix)
-            check_data_ulx = rb.check_ulx()
+            check_data_ulx = rb._check_ulx()
             for _data in check_data_ulx:
                 self.assertLessEqual(_data[2], 1e-8)
 
-            check_data_vly = rb.check_vly()
+            check_data_vly = rb._check_vly()
             for _data in check_data_vly:
                 self.assertLessEqual(_data[2], 1e-8)
 
@@ -25,11 +25,11 @@ class TestMethods(unittest.TestCase):
         for _lambda in [10.0, 10000.0]:
             prefix = "basis_b-mp-Lambda" + str(_lambda) + "_np8"
             rb = ir.basis("../irbasis.h5", prefix)
-            check_data_ulx = rb.check_ulx()
+            check_data_ulx = rb._check_ulx()
             for _data in check_data_ulx:
                 self.assertLessEqual(_data[2], 1e-8)
 
-            check_data_vly = rb.check_vly()
+            check_data_vly = rb._check_vly()
             for _data in check_data_vly:
                 self.assertLessEqual(_data[2], 1e-8)
 
@@ -47,7 +47,7 @@ class TestMethods(unittest.TestCase):
         for _lambda in [10.0, 10000.0]:
             prefix = "basis_f-mp-Lambda" + str(_lambda) + "_np8"
             rb_np8 = ir.basis("../irbasis.h5", prefix)
-            d_ulx_ref_np8 = rb_np8.get_d_ulx_ref()
+            d_ulx_ref_np8 = rb_np8._get_d_ulx_ref()
             d_ulx_ref_np8_1st = d_ulx_ref_np8[d_ulx_ref_np8[:, 2] == 1][0][3]
             d_ulx_ref_np8_2nd = d_ulx_ref_np8[d_ulx_ref_np8[:, 2] == 2][0][3]
             # 1-st differential
