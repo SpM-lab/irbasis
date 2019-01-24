@@ -25,9 +25,9 @@ int main() {
      */
     std::vector<double> rho_l(dim, 0.0);
     if (model == "Metal") {
-        // We use a simple numerical integration a uniform mesh
-        // number of omega points for numerical integration
-        // Use an adaptive numerical integration method (such as quad in GSL) for better accuracy!
+        // We use a simple numerical integration on a uniform mesh
+        //  nomega: Number of omega points for numerical integration.
+        // Please use an adaptive numerical integration method (such as quad in GSL) for better accuracy!
         int nomega = 100000;
         double dw = 2.0/nomega;
         for (int l=0; l<dim; ++l) {
