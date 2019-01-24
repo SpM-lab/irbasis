@@ -3,11 +3,11 @@
 #include "irbasis.hpp"
 
 int main() {
-    double Lamb = 1000.0;
+    double Lambda = 1000.0;
     double x = 1.0;
     double y = 1.0;
     int l = 0;
-    irbasis::basis b = irbasis::load("F", Lamb, "./irbasis.h5");
+    irbasis::basis b = irbasis::load("F", Lambda, "./irbasis.h5");
     
     //Dimensions of basis
     std::cout << b.dim() << std::endl;
