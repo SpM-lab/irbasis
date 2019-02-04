@@ -77,20 +77,22 @@ For other examples, please refer to our online document.
 ### Python
 You can download [api.py](https://github.com/SpM-lab/irbasis/blob/master/sample/api.py)
 and save it to your working directory.
-Then, please run the following command
+Then, please run the following command.
 
 ```python
 python api.py
 ```
 
+You can study also our step-by-step examples in [a jupyter notebook](https://github.com/SpM-lab/irbasis/blob/master/sample/step_by_step_examples.ipynb).
+
 ### C++
-You can download [api.cpp](https://github.com/SpM-lab/irbasis/blob/master/sample/api.py)
-and save it to your working directory.
+You can download [api.cpp](https://github.com/SpM-lab/irbasis/blob/master/sample/api.cpp) and [step\_by\_step\_examples.cpp](https://github.com/SpM-lab/irbasis/blob/master/sample/step_by_step_examples.cpp) to your working directory.
 After copying irbasis.hpp into the same directory,
 you can build the sample program as follows (see [compile.sh](https://github.com/SpM-lab/irbasis/blob/master/sample/compile.sh)).
 
 ```c++
-g++ api.cpp -I /usr/local/include -L /usr/local/lib -lhdf5 -DNDEBUG -O3
+g++ api.cpp -o api -I /usr/local/include -L /usr/local/lib -lhdf5 -DNDEBUG -O3
+g++ step_by_step_examples.cpp -o step_by_step_examples -I /usr/local/include -L /usr/local/lib -lhdf5 -DNDEBUG -O3
 ```
 
 Here, we assume that the header file and the library file of the HDF5 C library are installed into "/usr/local/include" and  "/usr/local/lib", respectively.
