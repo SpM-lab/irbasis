@@ -11,16 +11,16 @@ class refdata(object):
     def __init__(self, file_name, prefix=""):
         
         with h5py.File(file_name, 'r') as f:
-            self._Lambda = f[prefix+'/info/Lambda'].value
-            self._dim = f[prefix+'/info/dim'].value
+            self._Lambda = f[prefix+'/info/Lambda'][()]
+            self._dim = f[prefix+'/info/dim'][()]
 
-            self._unl_odd_ref = f[prefix+'/data/lodd/unl'].value
-            self._unl_odd_ref_max = f[prefix+'/data/lodd/unlmax'].value
-            self._unl_odd_l = f[prefix+'/data/lodd/l'].value
+            self._unl_odd_ref = f[prefix+'/data/lodd/unl'][()]
+            self._unl_odd_ref_max = f[prefix+'/data/lodd/unlmax'][()]
+            self._unl_odd_l = f[prefix+'/data/lodd/l'][()]
             
-            self._unl_even_ref = f[prefix+'/data/leven/unl'].value
-            self._unl_even_ref_max = f[prefix+'/data/leven/unlmax'].value
-            self._unl_even_l = f[prefix+'/data/leven/l'].value
+            self._unl_even_ref = f[prefix+'/data/leven/unl'][()]
+            self._unl_even_ref_max = f[prefix+'/data/leven/unlmax'][()]
+            self._unl_even_l = f[prefix+'/data/leven/l'][()]
             
             
     def check_data(self, basis, statistics):

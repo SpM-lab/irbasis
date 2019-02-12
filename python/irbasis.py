@@ -89,28 +89,28 @@ class basis(object):
     def __init__(self, file_name, prefix=""):
         
         with h5py.File(file_name, 'r') as f:
-            self._Lambda = f[prefix+'/info/Lambda'].value
-            self._dim = f[prefix+'/info/dim'].value
-            self._statistics = 'B' if f[prefix+'/info/statistics'].value == 0 else  'F'
+            self._Lambda = f[prefix+'/info/Lambda'][()]
+            self._dim = f[prefix+'/info/dim'][()]
+            self._statistics = 'B' if f[prefix+'/info/statistics'][()] == 0 else  'F'
 
-            self._sl = f[prefix+'/sl'].value
+            self._sl = f[prefix+'/sl'][()]
 
-            self._ulx_data = f[prefix+'/ulx/data'].value # (l, section, p)
+            self._ulx_data = f[prefix+'/ulx/data'][()] # (l, section, p)
             self._ulx_data_for_vec = self._ulx_data.transpose((1, 2, 0)) # (section, p, l)
-            self._ulx_ref_max = f[prefix+'/ulx/ref/max'].value
-            self._ulx_ref_data = f[prefix+'/ulx/ref/data'].value
-            self._ulx_section_edges = f[prefix+'/ulx/section_edges'].value
+            self._ulx_ref_max = f[prefix+'/ulx/ref/max'][()]
+            self._ulx_ref_data = f[prefix+'/ulx/ref/data'][()]
+            self._ulx_section_edges = f[prefix+'/ulx/section_edges'][()]
             assert self._ulx_data.shape[0] == self._dim
-            assert self._ulx_data.shape[1] == f[prefix+'/ulx/ns'].value
-            assert self._ulx_data.shape[2] == f[prefix+'/ulx/np'].value
+            assert self._ulx_data.shape[1] == f[prefix+'/ulx/ns'][()]
+            assert self._ulx_data.shape[2] == f[prefix+'/ulx/np'][()]
             
-            self._vly_data = f[prefix+'/vly/data'].value
-            self._vly_ref_max = f[prefix+'/vly/ref/max'].value
-            self._vly_ref_data = f[prefix+'/vly/ref/data'].value
-            self._vly_section_edges = f[prefix+'/vly/section_edges'].value
+            self._vly_data = f[prefix+'/vly/data'][()]
+            self._vly_ref_max = f[prefix+'/vly/ref/max'][()]
+            self._vly_ref_data = f[prefix+'/vly/ref/data'][()]
+            self._vly_section_edges = f[prefix+'/vly/section_edges'][()]
             assert self._vly_data.shape[0] == self._dim
-            assert self._vly_data.shape[1] == f[prefix+'/vly/ns'].value
-            assert self._vly_data.shape[2] == f[prefix+'/vly/np'].value
+            assert self._vly_data.shape[1] == f[prefix+'/vly/ns'][()]
+            assert self._vly_data.shape[2] == f[prefix+'/vly/np'][()]
             
     @property
     def Lambda(self):
