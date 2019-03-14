@@ -23,7 +23,7 @@ We briefly describe files constituting this software below.
 
 * c++/irbasis.hpp<br>C++ library
 * python/irbasis.py<br>Python library
-* database/irbasis.h5<br>Database file
+* database/irbasis.h5<br>Database file (Lambda=10,10<sup>2</sup>, 10<sup>3</sup>, 10<sup>4</sup>). You can download [an extended database file](https://shinaoka.sakura.ne.jp/data/irbasis.h5) containing data for Lambda = 10<sup>5</sup>, 10<sup>6</sup>, 10<sup>7</sup> additionally. 
 * sample/<br> Directory including samples in C++ and Python
 * test/<br>Unit tests in C++ and Python
 
