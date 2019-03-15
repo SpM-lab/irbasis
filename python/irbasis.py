@@ -70,6 +70,8 @@ def _compute_unl_high_freq(mask, w_vec_org, deriv0, deriv1, x0, x1, result):
 def load(statistics, Lambda, h5file=""):
     assert statistics == "F" or statistics == "B"
 
+    Lambda = float(Lambda)
+
     if h5file == "":
         name = os.path.dirname(os.path.abspath(__file__)) 
         file_name = os.path.normpath(os.path.join(name, './irbasis.h5'))
