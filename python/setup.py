@@ -14,7 +14,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='irbasis',
 
-    version='1.0.4',
+    version='2.0.0b1',
 
     description='Python libraries for irbasis',
 
@@ -56,7 +56,7 @@ setup(
 
     packages = find_packages(exclude=['contrib', 'docs', 'tests']),
 
-    install_requires=['numpy', 'h5py', 'future'],
+    install_requires=['numpy', 'h5py', 'future', 'mpmath'],
 
     package_data={
         'irbasis': ['irbasis.h5'],

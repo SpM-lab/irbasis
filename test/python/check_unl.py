@@ -25,7 +25,8 @@ class refdata(object):
             
     def check_data(self, basis, statistics):
             #Check odd-l
-            l = self._unl_odd_l 
+            l = self._unl_odd_l
+            #print("debug", statistics, self._unl_odd_ref[:, 0])
             unl = basis.compute_unl(numpy.array(self._unl_odd_ref[:, 0], dtype=int))[:, l]
             dunl = abs(unl- self._unl_odd_ref[:,1])/self._unl_odd_ref_max
 
@@ -73,10 +74,26 @@ class TestMethods(unittest.TestCase):
             for _statistics in ["f", "b"]:
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
                 rf_ref = refdata("../unl_safe_ref.h5", prefix)
-                basis = ir.basis("../irbasis.h5", prefix+"_np8")
+                basis = ir.basis("../irbasis.h5", prefix)
                 diff = rf_ref.check_data(basis, _statistics)
                 self.assertLessEqual(diff[0], 1e-8)
                 self.assertLessEqual(diff[1], 1e-7)
+
+    def test_unl_negative_n(self):
+        n = 1
+        for _lambda in [10.0]:
+            for _statistics in ["f", "b"]:
+                prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
+                basis = ir.basis("../irbasis.h5", prefix)
+                if _statistics == 'f':
+                    unl = basis.compute_unl([-n-1, n])
+                else:
+                    unl = basis.compute_unl([-n, n])
+                numpy.testing.assert_allclose(unl[0,:], numpy.conj(unl[1,:]))
+
+
+
+
 
 
 if __name__ == '__main__':

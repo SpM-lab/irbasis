@@ -40,7 +40,8 @@ class transformer(object):
         nx = len(self._x)
         self._u_smpl = numpy.zeros((nx, self._dim))
         for ix in range(nx):
-            self._u_smpl[ix, :] = self._w[ix] * basis.ulx_all_l(self._x[ix])
+            for l in range(self._dim):
+                self._u_smpl[ix, l] = self._w[ix] * basis.ulx(l, self._x[ix])
 
     def compute_gl(self, gtau, nl):
         assert nl <= self._dim
@@ -62,7 +63,7 @@ class TestMethods(unittest.TestCase):
             for _statistics in ["f", "b"]:
                 beta = 10.0
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
-                basis = ir.basis("../irbasis.h5", prefix + "_np8")
+                basis = ir.basis("../irbasis.h5", prefix)
                 Nl = basis.dim()
 
                 trans = transformer(basis, beta)
