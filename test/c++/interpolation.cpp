@@ -131,6 +131,7 @@ TEST(interpolation, differential_ulx) {
   int Nl = b10.dim();
   if (Nl % 2 == 1)
     Nl -= 1;
+
   ASSERT_LE(fabs((d_1st_ref_data10 - b10.d_ulx(Nl - 1, 1.0, 1)) / d_1st_ref_data10), 1e-8);
   ASSERT_LE(fabs((d_2nd_ref_data10 - b10.d_ulx(Nl - 1, 1.0, 2)) / d_2nd_ref_data10), 1e-8);
 

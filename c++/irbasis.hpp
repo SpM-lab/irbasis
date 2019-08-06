@@ -224,8 +224,8 @@ private:
   std::size_t extents_[DIM];
 };
 
-template<typename T>
-void multiply(const multi_array<T, 2> &A, const multi_array<T, 2> &B, multi_array<T, 2> &AB) {
+template<typename T1, typename T2, typename T3>
+void multiply(const multi_array<T1, 2> &A, const multi_array<T2, 2> &B, multi_array<T3, 2> &AB) {
   std::size_t N1 = A.extent(0);
   std::size_t N2 = A.extent(1);
   std::size_t N3 = B.extent(1);
@@ -529,7 +529,7 @@ public:
 
     H5Fclose(file);
 
-    int np = ulx_.np;
+    std::size_t np = ulx_.np;
     {
       std::vector<double> coeffs(np);
       for (int p=0; p<np; ++p) {
@@ -537,9 +537,7 @@ public:
         coeffs[p] = std::sqrt(p + 0.5);
       }
 
-      std::size_t dims[2];
-      dims[0] = np;
-      dims[1] = np;
+      std::size_t dims[2] = {np, np};
       deriv_mat_.resize(dims);
       deriv_mat_.fill(0.0);
       for (int l=0; l<np; ++l) {
@@ -706,7 +704,6 @@ public:
     mpf mpi = boost::math::constants::pi<mpf>();
 
     int num_n = n.size();
-    std::complex<double> J = std::complex<double>(0.0, 1.0);
 
     std::vector<mpf> o_vec(n.size());
     if (this->statistics_ == "F") {
@@ -760,7 +757,9 @@ public:
     for (int l = 0; l < dim_; ++l) {
       if ((l + sign_shift)%2 == 1) {
         for (int n=0; n<num_n; ++n) {
-          result_vec[n][l] = std::complex<double>(0, 2*static_cast<double>(tilde_unl(n, l).imag()));
+          result_vec[n][l] = std::complex<double>(
+              0, 2*static_cast<double>(tilde_unl(n, l).imag())
+              );
         }
       } else {
         for (int n=0; n<num_n; ++n) {
@@ -769,15 +768,15 @@ public:
       }
     }
 
-
     //Overwrite by tail
-    for (int i = 0; i < num_n; i++) {
+    for (int n = 0; n < num_n; n++) {
       for (int l = 0; l < dim_; l++) {
-        if (replaced_with_tail[i][l] == 1) {
-          result_vec[i][l] = unl_tail(i, l);
+        if (replaced_with_tail[n][l] == 1) {
+          result_vec[n][l] = unl_tail(n, l);
         }
       }
     }
+
     return result_vec;
   }
 
@@ -819,21 +818,25 @@ private:
     return eval_result * std::sqrt(2/static_cast<double>(dx));
   }
 
-  void
-  differentiate_coeff(internal::multi_array<double, 1> &coeffs, std::size_t order) const {
-    std::size_t k = coeffs.num_elements();
+  inline
+  internal::multi_array<double,1>
+  differentiate_coeff(const internal::multi_array<double, 1> &coeffs, std::size_t order) const {
+    const std::size_t np = coeffs.num_elements();
 
-    internal::multi_array<double, 2> coeffs_deriv(coeffs.make_matrix_view(k, 1));
-    internal::multi_array<double, 2> tmp(coeffs_deriv);
-
+    internal::multi_array<double,2> tmp2(np, 1);
+    internal::multi_array<double,2> tmp(np, 1);
+    for (int i=0; i<np; ++i) {
+      tmp2(i, 0) = coeffs(i);
+    }
     for (int i=0; i<order; ++i) {
-      return internal::multiply(deriv_mat_, coeffs_deriv, tmp);
-      std::swap(coeffs_deriv, tmp);
+      internal::multiply(deriv_mat_, tmp2, tmp);
+      std::swap(tmp2, tmp);
     }
-
-    for (int p=0; p<k; ++k) {
-      coeffs(p) = coeffs_deriv(p);
+    internal::multi_array<double,1> coeffs_deriv(np);
+    for (int p=0; p<np; ++p) {
+      coeffs_deriv(p) = tmp2(p, 0);
     }
+    return coeffs_deriv;
   }
 
   double eval_derivative(double x,
@@ -844,15 +847,14 @@ private:
     using namespace internal;
     std::size_t section_idx = section >= 0 ? section : find_section(section_edges, x);
 
-    multi_array<double, 1> coeffs_deriv(data.make_view(section_idx));
-    differentiate_coeff(coeffs_deriv, order);
+    multi_array<double, 1> coeffs_deriv = differentiate_coeff(data.make_view(section_idx), order);
     double dx = static_cast<double>(section_edges(section_idx+1) - section_edges(section_idx));
     return eval_impl(x, section_edges(section_idx), section_edges(section_idx+1), coeffs_deriv) * std::pow(2/dx, order);
   }
 
   internal::multi_array<std::complex<mpf>,2> compute_tilde_unl_fast(const std::vector<mpf>& w_vec) const {
-    int num_n = w_vec.size();
-    int np = ulx_.np;
+    const int num_n = w_vec.size();
+    const int np = ulx_.np;
 
     typedef std::complex<mpf> mcomplex;
     typedef std::complex<double> dcomplex;
@@ -865,10 +867,10 @@ private:
     std::vector<dcomplex> exp_n(num_n);
 
     for (int s=0; s<num_sections_x(); ++s) {
-      mpf xs = ulx_.section_edges(s);
-      mpf xsp = ulx_.section_edges(s+1);
-      mpf dx = xsp - xs;
-      mpf xmid = (xsp + xs)/2;
+      const mpf xs = ulx_.section_edges(s);
+      const mpf xsp = ulx_.section_edges(s+1);
+      const mpf dx = xsp - xs;
+      const mpf xmid = (xsp + xs)/2;
 
       // tmp_lp: lp
       {
@@ -891,7 +893,7 @@ private:
       }
       for (int n=0; n<num_n; ++n) {
         double w_tmp = static_cast<double>(dx * w_vec[n]/2);
-        dcomplex phase_p(0, 0);
+        dcomplex phase_p(1, 0);
         for (int p = 0; p < np; ++p) {
           tmp_np(n, p) = 2.0 * phase_p * boost::math::sph_bessel(p, w_tmp) * exp_n[n];
           phase_p *= dcomplex(0, 1);
@@ -900,11 +902,14 @@ private:
 
       for (int n=0; n<num_n; ++n) {
         for (int l=0; l<dim_; ++l) {
+          dcomplex tmp_nl(0.0);
           for (int p=0; p<np; ++p) {
-             tilde_unl(n, l) += tmp_np(n, p) * tmp_lp(l, p);
+             tmp_nl += tmp_np(n, p) * tmp_lp(l, p);
           }
+          tilde_unl(n, l) += tmp_nl;
         }
       }
+
     }
     return tilde_unl;
   }
