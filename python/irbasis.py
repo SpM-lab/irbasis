@@ -472,7 +472,7 @@ class basis(object):
         """
         section_idx = section if section >= 0 else min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
         coeffs = self._differentiate_coeff(data[section_idx, :], order)
-        dx = self.section_edges_x[section_idx+1] - self.section_edges_x[section_idx]
+        dx = section_edges[section_idx+1] - section_edges[section_idx]
         return self._eval_impl(x, section_edges[section_idx], section_edges[section_idx+1], coeffs) * ((2/dx)**order)
 
     def _differentiate_coeff(self, coeffs, order):
