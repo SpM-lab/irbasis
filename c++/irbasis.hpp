@@ -682,7 +682,7 @@ public:
 
   double section_edge_x(std::size_t index) const {
     assert(index >= 0 && index <= num_sections_x());
-    return static_cast<double>(ulx_.section_edges(index));
+    return lx_.section_edges(index).convert_to<double>();
   }
 
   int num_sections_y() const {
@@ -721,7 +721,7 @@ public:
     std::transform(w_vec.begin(), w_vec.end(), w_vec.begin(), std::bind1st(std::multiplies<mpf>(), mpi/2));
     std::vector<double> w_vec_f(num_n);
     for (int n=0; n<num_n; ++n) {
-      w_vec_f[n] = static_cast<double>(w_vec[n]);
+      w_vec_f[n] = w_vec[n].convert_to<double>();
     }
 
     std::size_t num_deriv = this->ulx_.data.extent(2);
@@ -758,12 +758,12 @@ public:
       if ((l + sign_shift)%2 == 1) {
         for (int n=0; n<num_n; ++n) {
           result_vec[n][l] = std::complex<double>(
-              0, 2*static_cast<double>(tilde_unl(n, l).imag())
+              0, 2*tilde_unl(n, l).imag().convert_to<double>()
               );
         }
       } else {
         for (int n=0; n<num_n; ++n) {
-          result_vec[n][l] = 2 * static_cast<double>(tilde_unl(n, l).real());
+          result_vec[n][l] = 2 * tilde_unl(n, l).real().convert_to<double>();
         }
       }
     }
@@ -782,7 +782,7 @@ public:
 
   double section_edge_y(std::size_t index) const {
     assert(index >= 0 && index <= num_sections_y());
-    return static_cast<double>(vly_.section_edges(index));
+    return vly_.section_edges(index).convert_to<double>();
   }
 
 
@@ -810,12 +810,12 @@ private:
     mpf tilde_x = (2*x - x_sp - x_s)/dx;
 
     std::vector<double> leg_vals(coeffs.extent(0));
-    internal::compute_legendre(static_cast<double>(tilde_x), leg_vals);
+    internal::compute_legendre(tilde_x.convert_to<double>(), leg_vals);
     double eval_result = 0.0;
     for (int p=0; p<leg_vals.size(); ++p) {
       eval_result += leg_vals[p] * norm_coeff_[p] * coeffs(p);
     }
-    return eval_result * std::sqrt(2/static_cast<double>(dx));
+    return eval_result * std::sqrt(2/dx.convert_to<double>());
   }
 
   inline
@@ -848,7 +848,7 @@ private:
     std::size_t section_idx = section >= 0 ? section : find_section(section_edges, x);
 
     multi_array<double, 1> coeffs_deriv = differentiate_coeff(data.make_view(section_idx), order);
-    double dx = static_cast<double>(section_edges(section_idx+1) - section_edges(section_idx));
+    double dx = (section_edges(section_idx+1) - section_edges(section_idx)).convert_to<double>();
     return eval_impl(x, section_edges(section_idx), section_edges(section_idx+1), coeffs_deriv) * std::pow(2/dx, order);
   }
 
@@ -875,7 +875,7 @@ private:
       // tmp_lp: lp
       {
         // Normalization factor
-        double coeff_tmp = std::sqrt(static_cast<double>(dx))/2;
+        double coeff_tmp = std::sqrt(dx.convert_to<double>())/2;
         for (int l=0; l<dim_; ++l) {
           for (int p=0; p<np; ++p) {
             tmp_lp(l, p) = ulx_.data(l, s, p) * coeff_tmp * norm_coeff_[p];
@@ -887,8 +887,8 @@ private:
       for (int n=0; n<num_n; ++n) {
         mpf phase = w_vec[n] * (xmid+1);
         exp_n[n] = std::complex<double>(
-              static_cast<double>(boost::multiprecision::cos(phase)),
-              static_cast<double>(boost::multiprecision::sin(phase))
+              boost::multiprecision::cos(phase).convert_to<double>(),
+              boost::multiprecision::sin(phase).convert_to<double>()
             );
       }
       for (int n=0; n<num_n; ++n) {
