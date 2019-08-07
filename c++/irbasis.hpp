@@ -895,7 +895,11 @@ private:
         double w_tmp = static_cast<double>(dx * w_vec[n]/2);
         dcomplex phase_p(1, 0);
         for (int p = 0; p < np; ++p) {
-          tmp_np(n, p) = 2.0 * phase_p * boost::math::sph_bessel(p, w_tmp) * exp_n[n];
+          if (w_tmp >= 0) {
+              tmp_np(n, p) = 2.0 * phase_p * boost::math::sph_bessel(p, w_tmp) * exp_n[n];
+          } else {
+              tmp_np(n, p) = std::conj(2.0 * phase_p * boost::math::sph_bessel(p, -w_tmp)) * exp_n[n];
+          }
           phase_p *= dcomplex(0, 1);
         }
       }
