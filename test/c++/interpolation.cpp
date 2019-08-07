@@ -1,10 +1,20 @@
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 
 #include "gtest.h"
 
 #include "../../c++/irbasis.hpp"
 
 using namespace irbasis;
+
+inline std::string
+get_path(const std::string& stat, double Lambda) {
+    std::stringstream ss;
+    ss << std::fixed;
+    ss << "basis_" << stat << "-mp-Lambda" << std::setprecision(1) << Lambda;
+    return ss.str();
+}
 
 class refdata {
 public:
@@ -76,12 +86,12 @@ TEST(interpolation, check_ulx_b) {
   basis b10("../irbasis.h5", "/basis_b-mp-Lambda10.0");
   std::vector<std::vector<double> > ref_data10 = b10.check_ulx();
   for (int i = 0; i < ref_data10.size(); i++) {
-    ASSERT_LE(ref_data10[i][2], 1e-8);
+    ASSERT_LE(ref_data10[i][2], 1e-11);
   }
   basis b10000("../irbasis.h5", "/basis_b-mp-Lambda10000.0");
   std::vector<std::vector<double> > ref_data10000 = b10000.check_ulx();
   for (int i = 0; i < ref_data10000.size(); i++) {
-    ASSERT_LE(ref_data10000[i][2], 1e-8);
+    ASSERT_LE(ref_data10000[i][2], 1e-11);
   }
 }
 
@@ -89,12 +99,12 @@ TEST(interpolation, check_ulx_f) {
   basis b10("../irbasis.h5", "/basis_f-mp-Lambda10.0");
   std::vector<std::vector<double> > ref_data10 = b10.check_ulx();
   for (int i = 0; i < ref_data10.size(); i++) {
-    ASSERT_LE(ref_data10[i][2], 1e-8);
+    ASSERT_LE(ref_data10[i][2], 1e-11);
   }
   basis b10000("../irbasis.h5", "/basis_f-mp-Lambda10000.0");
   std::vector<std::vector<double> > ref_data10000 = b10000.check_ulx();
   for (int i = 0; i < ref_data10000.size(); i++) {
-    ASSERT_LE(ref_data10000[i][2], 1e-8);
+    ASSERT_LE(ref_data10000[i][2], 1e-11);
   }
 }
 
@@ -102,12 +112,12 @@ TEST(interpolation, check_vly_b) {
   basis b10("../irbasis.h5", "/basis_b-mp-Lambda10.0");
   std::vector<std::vector<double> > ref_data10 = b10.check_vly();
   for (int i = 0; i < ref_data10.size(); i++) {
-    ASSERT_LE(ref_data10[i][2], 1e-8);
+    ASSERT_LE(ref_data10[i][2], 1e-11);
   }
   basis b10000("../irbasis.h5", "/basis_b-mp-Lambda10000.0");
   std::vector<std::vector<double> > ref_data10000 = b10000.check_vly();
   for (int i = 0; i < ref_data10000.size(); i++) {
-    ASSERT_LE(ref_data10000[i][2], 1e-8);
+    ASSERT_LE(ref_data10000[i][2], 1e-11);
   }
 }
 
@@ -115,12 +125,12 @@ TEST(interpolation, check_vly_f) {
   basis b10("../irbasis.h5", "/basis_f-mp-Lambda10.0");
   std::vector<std::vector<double> > ref_data10 = b10.check_vly();
   for (int i = 0; i < ref_data10.size(); i++) {
-    ASSERT_LE(ref_data10[i][2], 1e-8);
+    ASSERT_LE(ref_data10[i][2], 1e-11);
   }
   basis b10000("../irbasis.h5", "/basis_f-mp-Lambda10000.0");
   std::vector<std::vector<double> > ref_data10000 = b10000.check_vly();
   for (int i = 0; i < ref_data10000.size(); i++) {
-    ASSERT_LE(ref_data10000[i][2], 1e-8);
+    ASSERT_LE(ref_data10000[i][2], 1e-11);
   }
 }
 
@@ -132,8 +142,8 @@ TEST(interpolation, differential_ulx) {
   if (Nl % 2 == 1)
     Nl -= 1;
 
-  ASSERT_LE(fabs((d_1st_ref_data10 - b10.d_ulx(Nl - 1, 1.0, 1)) / d_1st_ref_data10), 1e-8);
-  ASSERT_LE(fabs((d_2nd_ref_data10 - b10.d_ulx(Nl - 1, 1.0, 2)) / d_2nd_ref_data10), 1e-8);
+  ASSERT_LE(fabs((d_1st_ref_data10 - b10.d_ulx(Nl - 1, 1.0, 1)) / d_1st_ref_data10), 1e-11);
+  ASSERT_LE(fabs((d_2nd_ref_data10 - b10.d_ulx(Nl - 1, 1.0, 2)) / d_2nd_ref_data10), 1e-11);
 
   basis b10000("../irbasis.h5", "/basis_f-mp-Lambda10000.0");
   double d_1st_ref_data10000 = b10000.get_ref_ulx(1);
@@ -141,8 +151,8 @@ TEST(interpolation, differential_ulx) {
   Nl = b10000.dim();
   if (Nl % 2 == 1)
     Nl -= 1;
-  ASSERT_LE(fabs((d_1st_ref_data10000 - b10000.d_ulx(Nl - 1, 1.0, 1)) / d_1st_ref_data10000), 1e-8);
-  ASSERT_LE(fabs((d_2nd_ref_data10000 - b10000.d_ulx(Nl - 1, 1.0, 2)) / d_2nd_ref_data10000), 1e-8);
+  ASSERT_LE(fabs((d_1st_ref_data10000 - b10000.d_ulx(Nl - 1, 1.0, 1)) / d_1st_ref_data10000), 1e-11);
+  ASSERT_LE(fabs((d_2nd_ref_data10000 - b10000.d_ulx(Nl - 1, 1.0, 2)) / d_2nd_ref_data10000), 1e-11);
 }
 
 double check_data_tail(basis bs, refdata rb, std::string _statics) {
@@ -207,29 +217,110 @@ double check_data(basis bs, refdata rb, std::string _statics) {
   return dunl_max;
 }
 
+/*
 TEST(interpolation, unl_limit) {
 
   basis b10f("../irbasis.h5", "/basis_f-mp-Lambda10.0");
   refdata ref10f("../unl_safe_ref.h5", "/basis_f-mp-Lambda10.0");
   double dunl_coeff = check_data_tail(b10f, ref10f, "f");
-  ASSERT_LE(dunl_coeff, 1e-7);
+  ASSERT_LE(dunl_coeff, 1e-11);
 
   basis b10000f("../irbasis.h5", "/basis_f-mp-Lambda10000.0");
   refdata ref10000f("../unl_safe_ref.h5", "/basis_f-mp-Lambda10000.0");
   dunl_coeff = check_data_tail(b10000f, ref10000f, "f");
-  ASSERT_LE(dunl_coeff, 1e-7);
+  ASSERT_LE(dunl_coeff, 1e-11);
 
   basis b10b("../irbasis.h5", "/basis_b-mp-Lambda10.0");
   refdata ref10b("../unl_safe_ref.h5", "/basis_b-mp-Lambda10.0");
   dunl_coeff = check_data_tail(b10b, ref10b, "b");
-  ASSERT_LE(dunl_coeff, 1e-7);
+  ASSERT_LE(dunl_coeff, 1e-11);
 
   basis b10000b("../irbasis.h5", "/basis_b-mp-Lambda10000.0");
   refdata ref10000b("../unl_safe_ref.h5", "/basis_b-mp-Lambda10000.0");
   dunl_coeff = check_data_tail(b10000b, ref10000b, "b");
-  ASSERT_LE(dunl_coeff, 1e-7);
+  ASSERT_LE(dunl_coeff, 1e-11);
+}
+*/
+
+TEST(interpolation, unl) {
+  double wmax = 1.0;
+
+  std::vector<long long> n_plt;
+  n_plt.push_back(-1);
+  n_plt.push_back(0);
+  n_plt.push_back(1);
+  for (int o=1; o<14; ++o) {
+      n_plt.push_back(static_cast<long long>(std::pow(10.0, o)));
+  }
+  int num_n = n_plt.size();
+
+  std::vector<double> poles;
+  poles.push_back(1.0);
+  poles.push_back(0.1);
+
+  std::vector<double> Lambdas;
+  Lambdas.push_back(10.0);
+  Lambdas.push_back(1E+4);
+  Lambdas.push_back(1E+7);
+
+  std::vector<std::string> stats;
+  stats.push_back("f");
+  stats.push_back("b");
+
+  for (int iLambda=0; iLambda<Lambdas.size(); ++iLambda) {
+    for (int istat=0; istat<stats.size(); ++istat) {
+      for (int ipole=0; ipole<poles.size(); ++ipole) {
+        double Lambda = Lambdas[iLambda];
+        double beta = Lambda/wmax;
+        std::string stat = stats[istat];
+        double pole = poles[ipole];
+
+        basis b("../irbasis.h5", get_path(stat, Lambda));
+        int dim = b.dim();
+        std::vector<std::vector<std::complex<double> > > unl = b.compute_unl(n_plt);
+      
+        std::vector<double> Sl(dim), rho_l(dim), gl(dim);
+      
+        int stat_shift = 0;
+        if (stat == "f") {
+            for (int l=0; l<dim; ++l) {
+                rho_l[l] = std::sqrt(1/wmax) * b.vly(l, pole/wmax);
+                Sl[l] = std::sqrt(0.5 * beta * wmax) * b.sl(l);
+            }
+            stat_shift = 1;
+        } else {
+            for (int l=0; l<dim; ++l) {
+                rho_l[l] = std::sqrt(1/wmax) * b.vly(l, pole/wmax)/pole;
+                Sl[l] = std::sqrt(0.5 * beta * wmax * wmax * wmax) * b.sl(l);
+            }
+            stat_shift = 0;
+        }
+      
+        for (int l=0; l<dim; ++l) {
+            gl[l] = - Sl[l] * rho_l[l];
+        }
+      
+        for (int n=0; n<num_n; ++n) {
+            std::cout << "Checking " << n_plt[n] << " " << stat << " pole= " << pole << std::endl;
+            std::complex<double> z = std::complex<double>(0, (2*n_plt[n]+stat_shift)*M_PI/beta);
+            std::complex<double> Giwn_ref = 1.0/(z-pole);
+      
+            std::complex<double> Giwn_t = 0;
+            for (int l=0; l<dim; ++l) {
+                Giwn_t += std::sqrt(beta) * unl[n][l] * gl[l];
+            }
+            ASSERT_LE(std::abs(Giwn_ref-Giwn_t), 1e-12);
+            ASSERT_LE(std::abs((Giwn_ref-Giwn_t)/Giwn_ref), 1e-12);
+        }
+
+      }
+    }
+  }
+
+
 }
 
+/*
 TEST(interpolation, unl) {
 
   basis b10f("../irbasis.h5", "/basis_f-mp-Lambda10.0");
@@ -252,3 +343,4 @@ TEST(interpolation, unl) {
   dunl_coeff = check_data(b10000b, ref10000b, "b");
   ASSERT_LE(dunl_coeff, 1e-7);
 }
+*/

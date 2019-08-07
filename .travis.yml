@@ -11,12 +11,14 @@ python:
 branches:
   only:
     - master
+    - devel
     - travis # To debug .travis.yml
 
 addons:
   apt:
     packages:
       - libhdf5-serial-dev
+      - libboost-dev
 
 install:
   - pip install -r python/requirements.txt

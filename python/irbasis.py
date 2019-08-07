@@ -46,7 +46,7 @@ def _load_mp_array(h5, key):
 def _even_odd_sign(l):
     return 1 if l%2==0 else -1
 
-def compute_tnl(wvec, n_legendre):
+def _compute_tnl(wvec, n_legendre):
     num_w = len(wvec)
     tnl = numpy.zeros((num_w, n_legendre), dtype=complex)
     wvec_f = wvec.astype(float)
@@ -65,7 +65,7 @@ def compute_tnl(wvec, n_legendre):
 def _sph_jn(n,z):
     return mpmath.besselj(n + mpmath.mpf(1)/2, z) / mpmath.sqrt(2*z/mpmath.pi)
 
-def compute_tnl_mp(wvec, n_legendre):
+def _compute_tnl_mp(wvec, n_legendre):
     from mpmath import mpc
     num_w = len(wvec)
     tnl = numpy.zeros((num_w, n_legendre), dtype=mpc)
@@ -335,7 +335,7 @@ class basis(object):
             The shape is (niw, nl) where niw is the dimension of the input "n" and nl is the dimension of the basis
 
         """
-        from mpmath import mpf, mpc, pi, sqrt
+        from mpmath import mpf, pi
 
         if isinstance(n, int):
             num_n = 1
@@ -384,8 +384,6 @@ class basis(object):
         return unl
 
     def _compute_tilde_unl_fast(self, w_vec):
-        from mpmath import mpf, mpc, pi, sqrt
-
         num_n = len(w_vec)
 
         tilde_unl = numpy.zeros((num_n, self._dim), dtype=complex)
@@ -401,7 +399,7 @@ class basis(object):
 
             phase = w_vec * (xmid+1)
             exp_n = _cos(phase) + mpmath.j * _sin(phase)
-            tnp = compute_tnl((dx * w_vec/2).astype(float), self._np)
+            tnp = _compute_tnl((dx * w_vec/2).astype(float), self._np)
 
             # n, np -> np
             # O(Nw * Np)
@@ -420,54 +418,6 @@ class basis(object):
 
         return tilde_unl
 
-    def _compute_tilde_unl(self, w_vec):
-        from mpmath import mpf, mpc, pi, sqrt
-
-        num_n = len(w_vec)
-
-        #import time
-        tilde_unl = numpy.zeros((num_n, self._dim), dtype=mpc)
-        for s in range(self.num_sections_x()):
-            #t1 = time.time()
-
-            xs = self._ulx_section_edges_mp[s]
-            xsp = self._ulx_section_edges_mp[s+1]
-            dx = xsp - xs
-            xmid = (xsp + xs)/2
-            coeffs_lp = self._ulx_data_mp[:, s, :] * sqrt(dx)/2
-
-            #t2 = time.time()
-
-            phase = w_vec * (xmid+1)
-            exp_n = _cos(phase) + mpmath.j * _sin(phase)
-            tnp = compute_tnl(dx * w_vec/2, self._np)
-
-            #t3 = time.time()
-
-            # n, np -> np
-            # O(Nw * Np)
-            tmp_np = exp_n[:, None] * tnp
-            #tmp_np = exp_n[:, None].astype(complex) * tnp.astype(complex)
-
-            #t4 = time.time()
-
-            # lp, p -> lp
-            # O(Nl * Np)
-            tmp_lp = coeffs_lp * self._norm_coeff_mp[None, :]
-
-            #t5 = time.time()
-
-            # O(Nw * Nl * Np)
-            #tilde_unl += numpy.tensordot(tmp_np.astype(complex), tmp_lp.astype(complex), axes=[[1], [1]])
-            tilde_unl += numpy.tensordot(tmp_np, tmp_lp, axes=[[1], [1]])
-
-            #t6 = time.time()
-            #print("timing: ", t2-t1, t3-t2, t4-t3, t5-t4, t6-t5)
-
-        # Total complexity:  O(Ns * Nw * Nl * Np)
-        # Ns = 200, Nw = 1000, Nl = 100, Np = 20 => 4 * 10^8
-
-        return tilde_unl.astype(complex)
 
     def num_sections_x(self):
         """
