@@ -7,7 +7,7 @@ import h5py
 import bisect
 from itertools import product
 from numpy.polynomial.legendre import legval
-import scipy
+import scipy.special
 import mpmath
 from mpmath import mp, mpf
 
