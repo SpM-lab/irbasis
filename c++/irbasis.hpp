@@ -848,7 +848,7 @@ private:
     std::size_t section_idx = section >= 0 ? section : find_section(section_edges, x);
 
     multi_array<double, 1> coeffs_deriv = differentiate_coeff(data.make_view(section_idx), order);
-    double dx = (section_edges(section_idx+1) - section_edges(section_idx)).convert_to<double>();
+    double dx = static_cast<mpf>(section_edges(section_idx+1) - section_edges(section_idx)).convert_to<double>();
     return eval_impl(x, section_edges(section_idx), section_edges(section_idx+1), coeffs_deriv) * std::pow(2/dx, order);
   }
 
@@ -886,13 +886,12 @@ private:
       // tmp_np: np
       for (int n=0; n<num_n; ++n) {
         mpf phase = w_vec[n] * (xmid+1);
-        exp_n[n] = std::complex<double>(
-              boost::multiprecision::cos(phase).convert_to<double>(),
-              boost::multiprecision::sin(phase).convert_to<double>()
-            );
+        mpf c = boost::multiprecision::cos(phase);
+        mpf s = boost::multiprecision::sin(phase);
+        exp_n[n] = std::complex<double>(c.convert_to<double>(), s.convert_to<double>());
       }
       for (int n=0; n<num_n; ++n) {
-        double w_tmp = static_cast<double>(dx * w_vec[n]/2);
+        double w_tmp = static_cast<mpf>(dx * w_vec[n]/2).convert_to<double>();
         dcomplex phase_p(1, 0);
         for (int p = 0; p < np; ++p) {
           if (w_tmp >= 0) {
