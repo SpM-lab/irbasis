@@ -11,6 +11,7 @@ python:
 branches:
   only:
     - master
+    - devel
     - travis # To debug .travis.yml
 
 addons:
