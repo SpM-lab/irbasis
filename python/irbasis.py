@@ -6,7 +6,6 @@ import numpy
 import h5py
 import bisect
 from itertools import product
-from scipy.special import eval_legendre
 from numpy.polynomial.legendre import legval
 import scipy
 import mpmath
@@ -60,18 +59,6 @@ def _compute_tnl(wvec, n_legendre):
     for il in range(n_legendre):
         tnl[mask, il] = numpy.conj(2 * (1J**il) * scipy.special.spherical_jn(il, -wvec_f[mask]))
 
-    return tnl
-
-def _sph_jn(n,z):
-    return mpmath.besselj(n + mpmath.mpf(1)/2, z) / mpmath.sqrt(2*z/mpmath.pi)
-
-def _compute_tnl_mp(wvec, n_legendre):
-    from mpmath import mpc
-    num_w = len(wvec)
-    tnl = numpy.zeros((num_w, n_legendre), dtype=mpc)
-    for il in range(n_legendre):
-        for n in range(num_w):
-            tnl[n, il] = 2 * (mpmath.j**il) * _sph_jn(il, wvec[n])
     return tnl
 
 def load(statistics, Lambda, h5file=""):

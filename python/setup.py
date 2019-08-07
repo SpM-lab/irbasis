@@ -56,7 +56,7 @@ setup(
 
     packages = find_packages(exclude=['contrib', 'docs', 'tests']),
 
-    install_requires=['numpy', 'h5py', 'future', 'mpmath'],
+    install_requires=['numpy', 'scipy', 'h5py', 'future', 'mpmath'],
 
     package_data={
         'irbasis': ['irbasis.h5'],
