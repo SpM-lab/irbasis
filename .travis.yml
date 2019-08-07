@@ -28,6 +28,7 @@ script:
   - set -e
 
   # Build, test irbasis
+  - export CTEST_OUTPUT_ON_FAILURE=1
   - cd $TRAVIS_BUILD_DIR/..
   - mkdir build
   - cd build
