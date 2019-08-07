@@ -682,7 +682,7 @@ public:
 
   double section_edge_x(std::size_t index) const {
     assert(index >= 0 && index <= num_sections_x());
-    return lx_.section_edges(index).convert_to<double>();
+    return ulx_.section_edges(index).convert_to<double>();
   }
 
   int num_sections_y() const {
@@ -720,8 +720,8 @@ public:
     std::vector<mpf> w_vec(o_vec);
     std::transform(w_vec.begin(), w_vec.end(), w_vec.begin(), std::bind1st(std::multiplies<mpf>(), mpi/2));
     std::vector<double> w_vec_f(num_n);
-    for (int n=0; n<num_n; ++n) {
-      w_vec_f[n] = w_vec[n].convert_to<double>();
+    for (int i=0; i<num_n; ++i) {
+      w_vec_f[i] = w_vec[i].convert_to<double>();
     }
 
     std::size_t num_deriv = this->ulx_.data.extent(2);
@@ -756,23 +756,23 @@ public:
     int sign_shift = statistics_ == "F" ? 1 : 0;
     for (int l = 0; l < dim_; ++l) {
       if ((l + sign_shift)%2 == 1) {
-        for (int n=0; n<num_n; ++n) {
-          result_vec[n][l] = std::complex<double>(
-              0, 2*tilde_unl(n, l).imag().convert_to<double>()
+        for (int i=0; i<num_n; ++i) {
+          result_vec[i][l] = std::complex<double>(
+              0, 2*tilde_unl(i, l).imag().convert_to<double>()
               );
         }
       } else {
-        for (int n=0; n<num_n; ++n) {
-          result_vec[n][l] = 2 * tilde_unl(n, l).real().convert_to<double>();
+        for (int i=0; i<num_n; ++i) {
+          result_vec[i][l] = 2 * tilde_unl(i, l).real().convert_to<double>();
         }
       }
     }
 
     //Overwrite by tail
-    for (int n = 0; n < num_n; n++) {
+    for (int i = 0; i < num_n; i++) {
       for (int l = 0; l < dim_; l++) {
-        if (replaced_with_tail[n][l] == 1) {
-          result_vec[n][l] = unl_tail(n, l);
+        if (replaced_with_tail[i][l] == 1) {
+          result_vec[i][l] = unl_tail(i, l);
         }
       }
     }
