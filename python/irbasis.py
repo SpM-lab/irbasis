@@ -13,6 +13,10 @@ from mpmath import mp, mpf
 
 mp.dps = 30
 
+def _check_type(obj, types):
+    if isinstance(obj, type):
+        raise RuntimeError("Passed the argument is type of" + str(type(obj)) + ", but expected to be one of " + " ".join(map(str, types)))
+
 def _mpmath_op(array, func):
     func_v = numpy.vectorize(func)
     return func_v(array)
@@ -508,3 +512,152 @@ class basis(object):
 
     def _get_d_vly_ref(self):
         return self._vly_ref_data
+
+
+#
+# The functions below are for sparse sampling
+#
+
+def _funique(x, tol=2e-16):
+    """Removes duplicates from an 1D array within tolerance"""
+    x = numpy.sort(x)
+    unique = numpy.ediff1d(x, to_end=2*tol) > tol
+    x = x[unique]
+    return x
+
+
+def _find_roots(ulx):
+    """Find all roots in (-1, 1) using double exponential mesh + bisection"""
+    Nx = 10000
+    eps = 1e-14
+    tvec = numpy.linspace(-3, 3, Nx)  # 3 is a very safe option.
+    xvec = numpy.tanh(0.5 * numpy.pi * numpy.sinh(tvec))
+
+    zeros = []
+    for i in range(Nx - 1):
+        if ulx(xvec[i]) * ulx(xvec[i + 1]) < 0:
+            a = xvec[i + 1]
+            b = xvec[i]
+            u_a = ulx(a)
+            u_b = ulx(b)
+            while a - b > eps:
+                half_point = 0.5 * (a + b)
+                if ulx(half_point) * u_a > 0:
+                    a = half_point
+                else:
+                    b = half_point
+            zeros.append(0.5 * (a + b))
+    return numpy.array(zeros)
+
+
+def sampling_points_x(b, whichl):
+    """
+    Computes "optimal" sampling points in x space for given basis
+
+    Parameters
+    ----------
+    b :
+        basis object
+    whichl: int
+        Index of reference basis function "l"
+
+    Returns
+    -------
+    sampling_points: 1D array of float
+        sampling points in x space
+    """
+    _check_type(b, basis)
+
+    xroots = _find_roots(lambda x: b.ulx(whichl, x))
+    xroots_ex = numpy.hstack((-1.0, xroots, 1.0))
+    return 0.5 * (xroots_ex[:-1] + xroots_ex[1:])
+
+
+def _start_guesses(n=1000):
+    "Construct points on a logarithmically extended linear interval"
+    x1 = numpy.arange(n)
+    x2 = numpy.array(numpy.exp(numpy.linspace(numpy.log(n), numpy.log(1E+8), n)), dtype=int)
+    x = numpy.unique(numpy.hstack((x1, x2)))
+    return x
+
+
+def _get_unl_real(basis_xy, x):
+    "Return highest-order basis function on the Matsubara axis"
+    unl = basis_xy.compute_unl(x)
+    result = numpy.zeros(unl.shape, float)
+
+    # Purely real functions
+    real_loc = 1 if basis_xy.statistics == 'F' else 0
+    assert numpy.allclose(unl[:, real_loc::2].imag, 0)
+    result[:, real_loc::2] = unl[:, real_loc::2].real
+
+    # Purely imaginary functions
+    imag_loc = 1 - real_loc
+    assert numpy.allclose(unl[:, imag_loc::2].real, 0)
+    result[:, imag_loc::2] = unl[:, imag_loc::2].imag
+    return result
+
+
+def _sampling_points(fn):
+    "Given a discretized 1D function, return the location of the extrema"
+    fn = numpy.asarray(fn)
+    fn_abs = numpy.abs(fn)
+    sign_flip = fn[1:] * fn[:-1] < 0
+    sign_flip_bounds = numpy.hstack((0, sign_flip.nonzero()[0] + 1, fn.size))
+    points = []
+    for segment in map(slice, sign_flip_bounds[:-1], sign_flip_bounds[1:]):
+        points.append(fn_abs[segment].argmax() + segment.start)
+    return numpy.asarray(points)
+
+
+def _full_interval(sample, stat):
+    if stat == 'F':
+        return numpy.hstack((-sample[::-1]-1, sample))
+    else:
+        # If we have a bosonic basis and even order (odd maximum), we have a
+        # root at zero. We have to artifically add that zero back, otherwise
+        # the condition number will blow up.
+        if sample[0] == 0:
+            sample = sample[1:]
+        return numpy.hstack((-sample[::-1], 0, sample))
+
+
+def _get_mats_sampling(basis_xy, lmax=None):
+    "Generate Matsubara sampling points from extrema of basis functions"
+    if lmax is None: lmax = basis_xy.dim()-1
+
+    x = _start_guesses()
+    y = _get_unl_real(basis_xy, x)[:,lmax]
+    x_idx = _sampling_points(y)
+
+    sample = x[x_idx]
+    return _full_interval(sample, basis_xy.statistics)
+
+
+def sampling_points_matsubara(b, whichl):
+    """
+    Computes "optimal" sampling points in Matsubara domain for given basis
+
+    Parameters
+    ----------
+    b :
+        basis object
+    whichl: int
+        Index of reference basis function "l"
+
+    Returns
+    -------
+    sampling_points: 1D array of int
+        sampling points in Matsubara domain
+
+    """
+    _check_type(b, basis)
+
+    stat = b.statistics
+
+    assert stat == 'F' or stat == 'B' or stat == 'barB'
+
+    if whichl > b.dim()-1:
+        raise RuntimeError("Too large whichl")
+
+    return _get_mats_sampling(b, whichl)
