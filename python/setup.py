@@ -14,7 +14,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='irbasis',
 
-    version='2.0.0b2',
+    version='2.0.0b3',
 
     description='Python libraries for irbasis',
 
@@ -24,7 +24,7 @@ setup(
 
     url='https://github.com/SpM-lab/irbasis',
 
-    author='Kazuyoshi Yoshimi, Hiroshi Shinaoka, Chikano Naoya, Junya Otsuki',
+    author='Kazuyoshi Yoshimi, Hiroshi Shinaoka, Chikano Naoya, Junya Otsuki, Markus Wallerberger',
 
     author_email='h.shinaoka@gmail.com', 
 

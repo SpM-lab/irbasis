@@ -573,6 +573,32 @@ def sampling_points_x(b, whichl):
     return 0.5 * (xroots_ex[:-1] + xroots_ex[1:])
 
 
+def sampling_points_y(b, whichl):
+    """
+    Computes "optimal" sampling points in y space for given basis
+
+    Parameters
+    ----------
+    b :
+        basis object
+    whichl: int
+        Index of reference basis function "l"
+
+    Returns
+    -------
+    sampling_points: 1D array of float
+        sampling points in y space
+    """
+    _check_type(b, basis)
+
+    roots_positive_half = 0.5 * _find_roots(lambda y: b.vly(whichl, (y + 1)/2)) + 0.5
+    if whichl % 2 == 0:
+        roots_ex = numpy.sort(numpy.hstack([-1, -roots_positive_half, roots_positive_half, 1]))
+    else:
+        roots_ex = numpy.sort(numpy.hstack([-1, -roots_positive_half, 0, roots_positive_half, 1]))
+
+    return 0.5 * (roots_ex[:-1] + roots_ex[1:])
+
 def _start_guesses(n=1000):
     "Construct points on a logarithmically extended linear interval"
     x1 = numpy.arange(n)

@@ -22,10 +22,10 @@ class TestMethods(unittest.TestCase):
             sp = irbasis.sampling_points_matsubara(b, whichl)
             if stat == 'F':
                 assert numpy.all([-s-1 in sp for s in sp])
-            elif stat in ['B', 'bB']:
+            elif stat in ['B']:
                 assert numpy.all([-s in sp for s in sp])
 
-            assert len(sp) == whichl + 1
+            assert len(sp) >= whichl + 1
 
             Unl = b.compute_unl(sp)[:, :dim]
             U, S, Vh = scipy.linalg.svd(Unl, full_matrices=False)
@@ -48,6 +48,17 @@ class TestMethods(unittest.TestCase):
 
             print("cond_num ", cond_num)
             self.assertLessEqual(cond_num, 1E+4)
+
+    def test_sampling_point_y(self):
+        for stat in ['F', 'B']:
+            b = irbasis.load(stat, Lambda, "../irbasis.h5")
+
+            dim = b.dim()
+            whichl = dim - 1
+            sp = irbasis.sampling_points_y(b, whichl)
+            #print(len(sp), whichl)
+            #print(sp)
+            assert len(sp) == whichl+1
 
 if __name__ == '__main__':
     unittest.main()
