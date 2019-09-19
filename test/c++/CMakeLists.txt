@@ -4,11 +4,12 @@ function(add_gtest test)
 
     add_executable(${test} ${source} ${gtest_src} ${header_files} dummy.cpp)
     target_link_libraries(${test} ${LINK_ALL})
-    target_include_directories(${test} PRIVATE ${HDF5_INCLUDE_DIRS})
+    target_include_directories(${test} PRIVATE ${HDF5_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
     add_test(NAME ${test} COMMAND ${test} ${test_xml_output})
 endfunction(add_gtest)
 
 find_package(HDF5 REQUIRED)
+find_package(Boost 1.54.0)
 
 list(APPEND LINK_ALL ${CMAKE_THREAD_LIBS_INIT} ${HDF5_C_LIBRARIES})
 

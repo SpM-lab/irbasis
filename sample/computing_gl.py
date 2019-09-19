@@ -37,7 +37,8 @@ class transformer(object):
         nx = len(self._x)
         self._u_smpl = numpy.zeros((nx, self._dim))
         for ix in range(nx):
-            self._u_smpl[ix, :] = self._w[ix] * basis.ulx_all_l(self._x[ix])
+            for l in range(self._dim):
+                self._u_smpl[ix, l] = self._w[ix] * basis.ulx(l, self._x[ix])
 
     def compute_gl(self, gtau, nl):
         assert nl <= self._dim

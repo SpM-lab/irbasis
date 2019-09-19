@@ -14,7 +14,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='irbasis',
 
-    version='1.0.4',
+    version='2.0.0',
 
     description='Python libraries for irbasis',
 
@@ -24,7 +24,7 @@ setup(
 
     url='https://github.com/SpM-lab/irbasis',
 
-    author='Kazuyoshi Yoshimi, Hiroshi Shinaoka, Chikano Naoya, Junya Otsuki',
+    author='Kazuyoshi Yoshimi, Hiroshi Shinaoka, Chikano Naoya, Junya Otsuki, Markus Wallerberger',
 
     author_email='h.shinaoka@gmail.com', 
 
@@ -56,7 +56,7 @@ setup(
 
     packages = find_packages(exclude=['contrib', 'docs', 'tests']),
 
-    install_requires=['numpy', 'h5py', 'future'],
+    install_requires=['numpy', 'scipy', 'h5py', 'future', 'mpmath'],
 
     package_data={
         'irbasis': ['irbasis.h5'],

@@ -1,0 +1,37 @@
+\documentclass[disablejfam,12pt]{article}
+\usepackage{graphicx}
+\usepackage{color}
+\pagestyle{empty}
+\setlength{\textheight}{240mm}
+\setlength{\textwidth}{160mm}
+\setlength{\columnsep}{5mm}
+\setlength{\topmargin}{-30mm}
+\setlength{\oddsidemargin}{0mm}
+\setlength{\evensidemargin}{0mm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{braket}
+
+\newcommand{\mathi}{\ensuremath{\mathrm{i}}}
+\newcommand{\mi}{\ensuremath{\mathrm{i}}}
+\newcommand{\barT}{\ensuremath{\bar{T}}}
+
+\def\deltaB{\delta_{\alpha, \mathrm{B}}}
+\def\deltaF{\delta_{\alpha, \mathrm{F}}}
+
+\author{Hiroshi SHINAOKA}
+
+\begin{document}
+\title{Matsubara representation}
+\maketitle
+\thispagestyle{empty}
+\begin{align}
+	u_{nl}^\alpha &\equiv \frac{1}{\sqrt{2}} \int_{-1}^{1} d x~e^{\mathi \pi \{n+(1/2)\deltaF\}(x+1)} u^\alpha_l(x),\label{eq:unl}\\
+	&= \tilde{u}_{nl} + (-1)^{\deltaF+ l}\tilde{u}_{nl}^*, \\
+	\tilde{u}_{nl}^\alpha &\equiv \frac{1}{\sqrt{2}} \int_{0}^{1} d x~e^{\mathi \pi \{n+(1/2)\deltaF\}(x+1)} u^\alpha_l(x),\\
+	&= \sum_s  \frac{\sqrt{\Delta x_s}}{2} \sqrt{p+\frac{1}{2}}e^{i\omega((x_{s+1}+x_s)/2+1)} \int_{-1}^1 dxP_p(x)e^{i\omega \Delta x_s/2 x}.\\
+	\int_{-1}^1 dx P_l(x)e^{ia} &= 2i^l j_l(a),\\
+        \omega &\equiv \pi \{n+(1/2)\deltaF\}.
+\end{align}
+
+\end{document}

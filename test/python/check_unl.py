@@ -6,62 +6,7 @@ import numpy
 import h5py
 import irbasis as ir
 import math
-
-class refdata(object):
-    def __init__(self, file_name, prefix=""):
-        
-        with h5py.File(file_name, 'r') as f:
-            self._Lambda = f[prefix+'/info/Lambda'][()]
-            self._dim = f[prefix+'/info/dim'][()]
-
-            self._unl_odd_ref = f[prefix+'/data/lodd/unl'][()]
-            self._unl_odd_ref_max = f[prefix+'/data/lodd/unlmax'][()]
-            self._unl_odd_l = f[prefix+'/data/lodd/l'][()]
-            
-            self._unl_even_ref = f[prefix+'/data/leven/unl'][()]
-            self._unl_even_ref_max = f[prefix+'/data/leven/unlmax'][()]
-            self._unl_even_l = f[prefix+'/data/leven/l'][()]
-            
-            
-    def check_data(self, basis, statistics):
-            #Check odd-l
-            l = self._unl_odd_l 
-            unl = basis.compute_unl(numpy.array(self._unl_odd_ref[:, 0], dtype=int))[:, l]
-            dunl = abs(unl- self._unl_odd_ref[:,1])/self._unl_odd_ref_max
-
-            if statistics == "f":
-                unl_limit = -(basis.d_ulx(l, 1, 1)+basis.d_ulx(l, -1, 1))/(numpy.pi*numpy.pi*math.sqrt(2.0))
-            else:
-                unl_limit = -(basis.ulx(l, 1)-basis.ulx(l, -1))/(numpy.pi*math.sqrt(2.0))
-            nvec = self._unl_odd_ref[:,0]
-            if statistics == "f":
-                unl_coeff = nvec*nvec*unl.real
-            else:
-                unl_coeff = nvec*unl.imag
-            dunl_coeff= abs(unl_limit-unl_coeff[len(unl_coeff)-1]) \
-                    if abs(unl_limit) < 1e-12 \
-                    else abs(unl_limit-unl_coeff[len(unl_coeff)-1])/abs(unl_limit)
-            dunl_limit =dunl_coeff
-
-            #Check even-l
-            l = self._unl_even_l 
-            unl = basis.compute_unl(numpy.array(self._unl_even_ref[:, 0], dtype=int))[:, l]
-            dunl = numpy.append(dunl, abs(unl- self._unl_even_ref[:,1])/self._unl_even_ref_max)
-            
-            if statistics == "f":
-                unl_limit = (basis.ulx(l, 1)+basis.ulx(l, -1))/(numpy.pi*math.sqrt(2.0))
-            else:
-                unl_limit = (basis.d_ulx(l, 1, 1)-basis.d_ulx(l, -1, 1))/(numpy.pi*numpy.pi*math.sqrt(2.0))
-            nvec = self._unl_even_ref[:,0]
-            if statistics == "f":
-                unl_coeff = nvec*unl.imag
-            else:
-                unl_coeff = nvec*nvec*unl.real
-            dunl_coeff = abs(unl_limit-unl_coeff[len(unl_coeff)-1]) \
-                    if abs(unl_limit) < 1e-12 \
-                    else abs(unl_limit-unl_coeff[len(unl_coeff)-1])/abs(unl_limit)
-            dunl_limit = numpy.append(dunl_limit, dunl_coeff)
-            return (abs(dunl.max()), abs(dunl_limit.max()))
+from itertools import product
 
 class TestMethods(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -69,14 +14,48 @@ class TestMethods(unittest.TestCase):
         super(TestMethods, self).__init__(*args, **kwargs)
 
     def test_unl(self):
-        for _lambda in [10.0, 10000.0]:
-            for _statistics in ["f", "b"]:
+        """
+        Consider a pole at omega=pole. Compare analytic results of G(iwn) and numerical results computed by using unl.
+        """
+        for _lambda in [10.0, 1E+4, 1E+7]:
+            for _statistics, pole in product(["f", "b"], [1.0, 0.1]):
+                print(_lambda, _statistics)
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
-                rf_ref = refdata("../unl_safe_ref.h5", prefix)
-                basis = ir.basis("../irbasis.h5", prefix+"_np8")
-                diff = rf_ref.check_data(basis, _statistics)
-                self.assertLessEqual(diff[0], 1e-8)
-                self.assertLessEqual(diff[1], 1e-7)
+                basis = ir.basis("../irbasis.h5", prefix)
+                dim = basis.dim()
+
+                wmax = 1.0
+                beta = _lambda/wmax
+
+                if _statistics == 'f':
+                    rho_l = numpy.sqrt(1/wmax)* numpy.array([basis.vly(l, pole/wmax) for l in range(dim)])
+                    Sl = numpy.sqrt(0.5 * beta * wmax) * numpy.array([basis.sl(l) for l in range(dim)])
+                    stat_shift = 1
+                else:
+                    rho_l = numpy.sqrt(1/wmax)* numpy.array([basis.vly(l, pole/wmax) for l in range(dim)])/pole
+                    Sl = numpy.sqrt(0.5 * beta * wmax**3) * numpy.array([basis.sl(l) for l in range(dim)])
+                    stat_shift = 0
+                gl = - Sl * rho_l
+
+                def G(n):
+                    wn = (2*n+stat_shift)*numpy.pi/beta
+                    z = 1J * wn
+                    return 1/(z - pole)
+
+                # Compute G(iwn) using unl
+                n_plt = numpy.array([-1, 0, 1, 1E+1, 1E+2, 1E+3, 1E+4, 1E+5, 1E+6, 1E+7, 1E+8, 1E+9, 1E+10, 1E+14], dtype=int)
+                Uwnl_plt =  numpy.sqrt(beta) * basis.compute_unl(n_plt)
+                Giwn_t = numpy.dot(Uwnl_plt, gl)
+
+                # Compute G(iwn) from analytic expression
+                Giwn_ref = numpy.array([G(n) for n in n_plt])
+
+                # Absolute error must be smaller than 1e-12
+                diff = Giwn_t - Giwn_ref
+                self.assertLessEqual(numpy.amax(numpy.abs(diff)), 1e-12)
+
+                # Relative error must be smaller than 1e-12
+                self.assertLessEqual(numpy.amax(numpy.abs(diff/Giwn_ref)), 1e-12)
 
 
 if __name__ == '__main__':
