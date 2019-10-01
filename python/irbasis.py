@@ -6,7 +6,7 @@ import numpy
 import h5py
 import bisect
 from itertools import product
-from numpy.polynomial.legendre import legval
+from numpy.polynomial.legendre import legval, legder
 import scipy.special
 import mpmath
 from mpmath import mp, mpf
@@ -107,6 +107,87 @@ def _compute_unl_tail(w_vec, stastics, deriv_x1):
 
     return -(sign_statistics/numpy.sqrt(2.0)) * numpy.einsum('ij,kj->ik', coeffs_nm, coeffs_lm)
 
+
+class _PiecewiseLegendrePoly:
+    """Piecewise Legendre polynomial.
+
+    Models a function on the interval `[-1, 1]` as a set of segments on the
+    intervals `S[i] = [a[i], a[i+1]]`, where on each interval the function
+    is expanded in scaled Legendre polynomials.
+    """
+    def __init__(self, data, knots):
+        """Piecewise Legendre polynomial"""
+        data = numpy.array(data)
+        knots = numpy.array(knots)
+        polyorder, nsegments = data.shape[:2]
+        if knots.shape != (nsegments+1,):
+            raise ValueError("Invalid knost array")
+        if (numpy.diff(knots) < 0).any():
+            raise ValueError("Knots must be monotonically increasing")
+
+        self.nsegments = nsegments
+        self.polyorder = polyorder
+        self.xmin = knots[0]
+        self.xmax = knots[-1]
+
+        self.knots = knots
+        self.data = data
+        self._xm = .5 * (knots[1:] + knots[:-1])
+        self._inv_xs = 2 / (knots[1:] - knots[:-1])
+        self._norm = numpy.sqrt(self._inv_xs)
+
+    def _split(self, x):
+        """Split segment"""
+        if (x < self.xmin).any() or (x > self.xmax).any():
+            raise ValueError("x must be in [%g, %g]" % (self.xmin, self.xmax))
+
+        i = self.knots.searchsorted(x, 'right').clip(None, self.nsegments)
+        i -= 1
+        xtilde = x - self._xm[i]
+        xtilde *= self._inv_xs[i]
+        return i, xtilde
+
+    def __call__(self, x, l=Ellipsis):
+        """Evaluate polynomial at position x"""
+        i, xtilde = self._split(x)
+        res = legval(xtilde, self.data[:,i,l], tensor=True)
+        res *= self._norm[i]
+        return res
+
+    def deriv(self, n=1):
+        """Get polynomial for the n'th derivative"""
+        ddata = legder(self.data, n)
+        scale = self._inv_xs ** n
+        ddata *= scale[(slice(None),) + (None,) * (ddata.ndim-2)]
+        return _PiecewiseLegendrePoly(ddata, self.knots)
+
+
+def _preprocess_irdata(data, knots):
+    """Perform preprocessing of IR data"""
+    data = numpy.array(data)
+    dim, nsegments, polyorder = data.shape
+
+    # First, the basis is given by *normalized* Legendre function
+    # so we have to undo the normalization here:
+    norm = numpy.sqrt(numpy.arange(polyorder) + 0.5)
+    data *= norm
+
+    # The functions are stored for [0,1] only, since they are
+    # either even or odd for even or odd orders, respectively. We
+    # undo this here, because it simplifies the logic.
+    mknots = -knots[::-1]
+    mdata = data[:,::-1].copy()
+    mdata[1::2,:,0::2] *= -1
+    mdata[0::2,:,1::2] *= -1
+    data = numpy.concatenate((mdata, data), axis=1)
+    knots = numpy.concatenate((mknots, knots[1:]), axis=0)
+
+    # Transpose following numpy polynomial convention
+    data = data.transpose(2,1,0)
+    return data, knots
+
+
+
 class basis(object):
     def __init__(self, file_name, prefix=""):
         
@@ -142,14 +223,10 @@ class basis(object):
             np = f[prefix+'/vly/np'][()]
             self._np = np
 
-        # Differential operator for \tilde{P}_l[x]
-        self._deriv_mat = numpy.zeros((self._np, self._np))
-        for l in range(self._np):
-            for m in range(l-1, -1, -2):
-                self._deriv_mat[m, l] = 2*m + 1
-            #print(l, self._deriv_mat[:, l])
-        coeffs = numpy.sqrt(numpy.arange(self._np) + 0.5) # Conversion between \tilde{P}_l and P_l
-        self._deriv_mat = numpy.einsum('i,ij,j->ij', 1/coeffs, self._deriv_mat, coeffs)
+        self._ulx_ppoly = _PiecewiseLegendrePoly(
+                *_preprocess_irdata(self._ulx_data, self._ulx_section_edges))
+        self._vly_ppoly = _PiecewiseLegendrePoly(
+                *_preprocess_irdata(self._vly_data, self._vly_section_edges))
 
         self._norm_coeff = numpy.sqrt(numpy.arange(np) + 0.5)
         self._norm_coeff_mp = numpy.array([mpmath.sqrt(n + mpmath.mpf('0.5')) for n in numpy.arange(np)], dtype=mpf)
@@ -210,9 +287,9 @@ class basis(object):
 
         Parameters
         ----------
-        l : int
+        l : int or int-like array
             index of basis functions
-        x : float
+        x : float or float-like array
             dimensionless parameter x (-1 <= x <= 1)
 
         Returns
@@ -220,23 +297,17 @@ class basis(object):
         ulx : float
             value of basis function u_l(x)
         """
-        if not -1 <= x <= 1:
-            raise RuntimeError("x should be in [-1,1]!")
+        return self._ulx_ppoly(x,l)
 
-        if x >= 0:
-            return self._eval(x, self._ulx_data[l, :, :], self._ulx_section_edges)
-        else:
-            return self._eval(-x, self._ulx_data[l, :, :], self._ulx_section_edges) * _even_odd_sign(l)
-
-    def d_ulx(self, l, x, order, section=-1):
+    def d_ulx(self, l, x, order, section=None):
         """
         Return (higher-order) derivatives of u_l(x)
 
         Parameters
         ----------
-        l : int
+        l : int  or int-like array
             index of basis functions
-        x : int
+        x : float or float-like array
             dimensionless parameter x
         order : int
             order of derivative (>=0). 1 for the first derivative.
@@ -249,13 +320,7 @@ class basis(object):
             (higher-order) derivative of u_l(x)
 
         """
-        if not -1 <= x <= 1:
-            raise RuntimeError("x should be in [-1,1]!")
-
-        if x >= 0:
-            return self._eval_derivative(x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section)
-        else:
-            return self._eval_derivative(-x, order, self._ulx_data[l, :, :], self._ulx_section_edges, section) * _even_odd_sign(l + order)
+        return self._ulx_ppoly.deriv(order)(x,l)
 
     def vly(self, l, y):
         """
@@ -273,14 +338,7 @@ class basis(object):
         vly : float
             value of basis function v_l(y)
         """
-        if not -1 <= y <= 1:
-            raise RuntimeError("y should be in [-1,1]!")
-
-        if y >= 0:
-            return self._eval(y, self._vly_data[l, :, :], self._vly_section_edges)
-        else:
-            return self._eval(-y, self._vly_data[l, :, :], self._vly_section_edges) * _even_odd_sign(l)
-
+        return self._vly_ppoly(y,l)
 
     def d_vly(self, l, y, order):
         """
@@ -303,13 +361,7 @@ class basis(object):
             (higher-order) derivative of v_l(y)
 
         """
-        if not -1 <= y <= 1:
-            raise RuntimeError("y should be in [-1,1]!")
-
-        if y >= 0:
-            return self._eval_derivative(y, order, self._vly_data[l, :, :], self._vly_section_edges)
-        else:
-            return self._eval_derivative(-y, order, self._vly_data[l, :, :], self._vly_section_edges) * _even_odd_sign(l+order)
+        return self._vly_ppoly.deriv(order)(y,l)
 
     def compute_unl(self, n):
         """
@@ -347,8 +399,11 @@ class basis(object):
         # Compute tail
         replaced_with_tail = numpy.zeros((num_n, self.dim()), dtype=int)
         deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
-        for l in range(self.dim()):
-            deriv_x1[l, :] = numpy.array([self.d_ulx(l, 1.0, o) for o in range(num_deriv)])
+
+        all_l = numpy.arange(self.dim())
+        for o in range(num_deriv):
+            deriv_x1[:,o] = self.d_ulx(all_l, 1.0, o)
+
         unl_tail = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1)
         unl_tail_without_last_two = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1[:, :-2])
         for i in range(len(n)):
@@ -451,51 +506,6 @@ class basis(object):
         section_edges_y : 1D ndarray of float
         """
         return self._vly_section_edges
-
-    def _eval(self, x, data, section_edges):
-        """
-        data : (num_sections, np)
-        """
-        section_idx = min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
-
-        return self._eval_impl(x, section_edges[section_idx], section_edges[section_idx+1], data[section_idx, :])
-
-    def _eval_impl(self, x, x_s, x_sp, coeffs):
-        """
-        coeffs is 1D or 2D array containing expansion coefficients in terms of \tilde{P}_l
-        """
-        dx = x_sp - x_s
-        tilde_x = (2*x - x_sp - x_s)/dx
-
-        return legval(tilde_x, coeffs * self._norm_coeff) * numpy.sqrt(2/dx)
-
-    def _eval_derivative(self, x, order, data, section_edges, section=-1):
-        """
-        If section = -1, the index is determined by binary search
-
-        """
-        section_idx = section if section >= 0 else min(bisect.bisect_right(section_edges, x)-1, len(section_edges)-2)
-        coeffs = self._differentiate_coeff(data[section_idx, :], order)
-        dx = section_edges[section_idx+1] - section_edges[section_idx]
-        return self._eval_impl(x, section_edges[section_idx], section_edges[section_idx+1], coeffs) * ((2/dx)**order)
-
-    def _differentiate_coeff(self, coeffs, order):
-        """
-
-        Parameters
-        ----------
-        coeffs : coefficients of piecewise Legendre polynomial (\tilde{P}_l)
-        order : order of differentiation (1 is for the first derivative)
-
-        Returns
-        -------
-        Coefficients representing derivatives
-
-        """
-
-        for i in range(order):
-            coeffs = numpy.dot(self._deriv_mat, coeffs)
-        return coeffs
 
     def _check_ulx(self):
         ulx_max = self._ulx_ref_max[2]
