@@ -49,6 +49,39 @@ class TestMethods(unittest.TestCase):
             d_2nd_differential = abs((d_ulx_ref_np8_2nd - rb_np8.d_ulx(Nl-1, 1.0, 2)) / d_ulx_ref_np8_2nd)
             self.assertLessEqual(d_2nd_differential, 1e-11)
 
+    def test_vectorization(self):
+        for _lambda in [1E+4]:
+            prefix = "basis_f-mp-Lambda" + str(_lambda)
+            rb = ir.basis("../irbasis.h5", prefix)
+
+            # re-vectorized functions
+            revec_ulx = numpy.vectorize(rb.ulx)
+            revec_vly = numpy.vectorize(rb.vly)
+            revec_sl = numpy.vectorize(rb.sl)
+
+            # check that those match:
+            x = numpy.array([-.3, .2, .5])
+            l = numpy.array([1, 3, 10, 15], dtype=int)
+            alll = numpy.arange(rb.dim())
+
+            self.assertTrue(numpy.allclose(revec_sl(l), rb.sl(l)))
+            self.assertTrue(numpy.allclose(revec_sl(alll), rb.sl()))
+
+            self.assertTrue(numpy.allclose(revec_ulx(l[0], x), rb.ulx(l[0], x)))
+            self.assertTrue(numpy.allclose(revec_ulx(l, x[0]), rb.ulx(l, x[0])))
+            self.assertTrue(numpy.allclose(revec_ulx(alll, x[0]),
+                                           rb.ulx(None, x[0])))
+            self.assertTrue(numpy.allclose(revec_ulx(l[:,None], x[None,:]),
+                                           rb.ulx(l[:,None], x[None,:])))
+
+            self.assertTrue(numpy.allclose(revec_vly(l[0], x), rb.vly(l[0], x)))
+            self.assertTrue(numpy.allclose(revec_vly(l, x[0]), rb.vly(l, x[0])))
+            self.assertTrue(numpy.allclose(revec_vly(alll, x[0]),
+                                           rb.vly(None, x[0])))
+            self.assertTrue(numpy.allclose(revec_vly(l[:,None], x[None,:]),
+                                           rb.vly(l[:,None], x[None,:])))
+
+
 
 if __name__ == '__main__':
     unittest.main()
