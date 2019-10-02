@@ -150,7 +150,7 @@ class _PiecewiseLegendrePoly:
     def __call__(self, x, l=Ellipsis):
         """Evaluate polynomial at position x"""
         i, xtilde = self._split(x)
-        res = legval(xtilde, self.data[:,i,l], tensor=True)
+        res = legval(xtilde, self.data[:,i,l], tensor=False)
         res *= self._norm[i]
         return res
 
@@ -264,14 +264,14 @@ class basis(object):
         """
         return self._dim
 
-    def sl(self, l):
+    def sl(self, l=None):
         """
         Return the singular value for the l-th basis function
 
         Parameters
         ----------
-        l : int
-            index of the singular values/basis functions
+        l : int, int-like array or None
+            index of the singular values/basis functions. If None, return all.
 
         Returns
         sl : float
@@ -279,6 +279,8 @@ class basis(object):
         -------
 
         """
+        if l is None: l = Ellipsis
+
         return self._sl[l]
     
     def ulx(self, l, x):
@@ -287,8 +289,8 @@ class basis(object):
 
         Parameters
         ----------
-        l : int or int-like array
-            index of basis functions
+        l : int, int-like array or None
+            index of basis functions. If None, return array with all l
         x : float or float-like array
             dimensionless parameter x (-1 <= x <= 1)
 
@@ -297,6 +299,7 @@ class basis(object):
         ulx : float
             value of basis function u_l(x)
         """
+        if l is None: l = Ellipsis
         return self._ulx_ppoly(x,l)
 
     def d_ulx(self, l, x, order, section=None):
@@ -305,8 +308,8 @@ class basis(object):
 
         Parameters
         ----------
-        l : int  or int-like array
-            index of basis functions
+        l : int, int-like array or None
+            index of basis functions. If None, return array with all l
         x : float or float-like array
             dimensionless parameter x
         order : int
@@ -320,6 +323,7 @@ class basis(object):
             (higher-order) derivative of u_l(x)
 
         """
+        if l is None: l = Ellipsis
         return self._ulx_ppoly.deriv(order)(x,l)
 
     def vly(self, l, y):
@@ -328,9 +332,9 @@ class basis(object):
 
         Parameters
         ----------
-        l : int
-            index of basis functions
-        y : float
+        l : int, int-like array or None
+            index of basis functions. If None, return array with all l
+        y : float or float-like array
             dimensionless parameter y (-1 <= y <= 1)
 
         Returns
@@ -338,6 +342,7 @@ class basis(object):
         vly : float
             value of basis function v_l(y)
         """
+        if l is None: l = Ellipsis
         return self._vly_ppoly(y,l)
 
     def d_vly(self, l, y, order):
@@ -346,9 +351,9 @@ class basis(object):
 
         Parameters
         ----------
-        l : int
-            index of basis functions
-        y : int
+        l : int, int-like array or None
+            index of basis functions. If None, return array with all l
+        y : float or float-like array
             dimensionless parameter y
         order : int
             order of derivative (>=0). 1 for the first derivative.
@@ -361,6 +366,7 @@ class basis(object):
             (higher-order) derivative of v_l(y)
 
         """
+        if l is None: l = Ellipsis
         return self._vly_ppoly.deriv(order)(y,l)
 
     def compute_unl(self, n):
@@ -399,11 +405,8 @@ class basis(object):
         # Compute tail
         replaced_with_tail = numpy.zeros((num_n, self.dim()), dtype=int)
         deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
-
-        all_l = numpy.arange(self.dim())
         for o in range(num_deriv):
-            deriv_x1[:,o] = self.d_ulx(all_l, 1.0, o)
-
+            deriv_x1[:,o] = self.d_ulx(None, 1.0, o)
         unl_tail = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1)
         unl_tail_without_last_two = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1[:, :-2])
         for i in range(len(n)):
