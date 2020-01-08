@@ -24,8 +24,17 @@ print("Dim ", basis.dim())
 print("ulx ", basis.ulx(l,x))
 print("vly ", basis.vly(l,y))
 
+# "Broadcasting rule" applies to ulx(), vly(), d_ulx(), d_vly() and sl()
+nx = 10
+all_l = numpy.arange(basis.dim())
+xs = numpy.linspace(-1, 1, nx)
+ulx_mat = basis.ulx(all_l[:,None], xs[None,:])
+ulx_mat_slow = numpy.array([basis.ulx(l, x) for l in range(basis.dim()) for x in xs]).reshape(basis.dim(), nx)
+assert numpy.allclose(ulx_mat, ulx_mat_slow)
+
 # Singular value s_0
 print("sl ", basis.sl(l))
+print("all sl", basis.sl(all_l))
 
 # The k-th derivative of u_l(x) and v_l(y)  (k = 1,2,3)
 for k in [1, 2, 3]:
