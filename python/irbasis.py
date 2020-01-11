@@ -4,7 +4,6 @@ from builtins import range
 import os
 import numpy
 import h5py
-import bisect
 from itertools import product
 from numpy.polynomial.legendre import legval, legder
 import scipy.special
@@ -552,7 +551,6 @@ def _find_roots(ulx):
             a = xvec[i + 1]
             b = xvec[i]
             u_a = ulx(a)
-            u_b = ulx(b)
             while a - b > eps:
                 half_point = 0.5 * (a + b)
                 if ulx(half_point) * u_a > 0:
@@ -663,7 +661,8 @@ def _full_interval(sample, stat):
 
 def _get_mats_sampling(basis_xy, lmax=None):
     "Generate Matsubara sampling points from extrema of basis functions"
-    if lmax is None: lmax = basis_xy.dim()-1
+    if lmax is None:
+        lmax = basis_xy.dim()-1
 
     x = _start_guesses()
     y = _get_unl_real(basis_xy, x)[:,lmax]

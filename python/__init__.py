@@ -1,1 +1,1 @@
-from .irbasis import *
+from .irbasis import load, basis
