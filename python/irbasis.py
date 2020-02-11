@@ -146,10 +146,20 @@ class _PiecewiseLegendrePoly:
         xtilde *= self._inv_xs[i]
         return i, xtilde
 
-    def __call__(self, x, l=Ellipsis):
+    def __call__(self, x, l=None):
         """Evaluate polynomial at position x"""
-        i, xtilde = self._split(x)
-        res = legval(xtilde, self.data[:,i,l], tensor=False)
+        i, xtilde = self._split(numpy.asarray(x))
+
+        if l is None:
+            # Evaluate for all values of l.  xtilde and data array must be
+            # broadcast'able against each other, so we append a dimension here
+            xtilde = xtilde[(slice(None),) * xtilde.ndim + (None,)]
+            data = self.data[:,i,:]
+        else:
+            numpy.broadcast(xtilde, l)
+            data = self.data[:,i,l]
+
+        res = legval(xtilde, data, tensor=False)
         res *= self._norm[i]
         return res
 
@@ -157,7 +167,7 @@ class _PiecewiseLegendrePoly:
         """Get polynomial for the n'th derivative"""
         ddata = legder(self.data, n)
         scale = self._inv_xs ** n
-        ddata *= scale[(slice(None),) + (None,) * (ddata.ndim-2)]
+        ddata *= scale[None, :, None]
         return _PiecewiseLegendrePoly(ddata, self.knots)
 
 
@@ -298,7 +308,6 @@ class basis(object):
         ulx : float
             value of basis function u_l(x)
         """
-        if l is None: l = Ellipsis
         return self._ulx_ppoly(x,l)
 
     def d_ulx(self, l, x, order, section=None):
@@ -322,7 +331,6 @@ class basis(object):
             (higher-order) derivative of u_l(x)
 
         """
-        if l is None: l = Ellipsis
         return self._ulx_ppoly.deriv(order)(x,l)
 
     def vly(self, l, y):
@@ -341,7 +349,6 @@ class basis(object):
         vly : float
             value of basis function v_l(y)
         """
-        if l is None: l = Ellipsis
         return self._vly_ppoly(y,l)
 
     def d_vly(self, l, y, order):
@@ -365,7 +372,6 @@ class basis(object):
             (higher-order) derivative of v_l(y)
 
         """
-        if l is None: l = Ellipsis
         return self._vly_ppoly.deriv(order)(y,l)
 
     def compute_unl(self, n):
