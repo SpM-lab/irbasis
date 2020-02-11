@@ -120,7 +120,7 @@ class _PiecewiseLegendrePoly:
         knots = numpy.array(knots)
         polyorder, nsegments = data.shape[:2]
         if knots.shape != (nsegments+1,):
-            raise ValueError("Invalid knost array")
+            raise ValueError("Invalid knots array")
         if (numpy.diff(knots) < 0).any():
             raise ValueError("Knots must be monotonically increasing")
 
