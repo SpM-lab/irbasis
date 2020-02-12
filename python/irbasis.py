@@ -116,7 +116,7 @@ class _PiecewiseLegendrePoly:
     intervals `S[i] = [a[i], a[i+1]]`, where on each interval the function
     is expanded in scaled Legendre polynomials.
     """
-    def __init__(self, data, knots):
+    def __init__(self, data, knots, dx):
         """Piecewise Legendre polynomial"""
         data = numpy.array(data)
         knots = numpy.array(knots)
@@ -125,6 +125,8 @@ class _PiecewiseLegendrePoly:
             raise ValueError("Invalid knots array")
         if (numpy.diff(knots) < 0).any():
             raise ValueError("Knots must be monotonically increasing")
+        if not numpy.allclose(dx, knots[1:] - knots[:-1]):
+            raise ValueError("dx must work with knots")
 
         self.nsegments = nsegments
         self.polyorder = polyorder
@@ -132,9 +134,10 @@ class _PiecewiseLegendrePoly:
         self.xmax = knots[-1]
 
         self.knots = knots
+        self.dx = dx
         self.data = data
         self._xm = .5 * (knots[1:] + knots[:-1])
-        self._inv_xs = 2 / (knots[1:] - knots[:-1])
+        self._inv_xs = 2/dx
         self._norm = numpy.sqrt(self._inv_xs)
 
     def _split(self, x):
@@ -170,15 +173,17 @@ class _PiecewiseLegendrePoly:
         ddata = legder(self.data, n)
         scale = self._inv_xs ** n
         ddata *= scale[None, :, None]
-        return _PiecewiseLegendrePoly(ddata, self.knots)
+        return _PiecewiseLegendrePoly(ddata, self.knots, self.dx)
 
 
-def _preprocess_irdata(data, knots):
+def _preprocess_irdata(data, knots, knots_corr=None):
     """Perform preprocessing of IR data"""
     data = numpy.array(data)
     dim, nsegments, polyorder = data.shape
+    if knots_corr is None:
+        knots_corr = numpy.zeros_like(knots)
 
-    # First, the basis is given by *normalized* Legendre function
+    # First, the basis is given by *normalized* Legendre function,
     # so we have to undo the normalization here:
     norm = numpy.sqrt(numpy.arange(polyorder) + 0.5)
     data *= norm
@@ -186,17 +191,17 @@ def _preprocess_irdata(data, knots):
     # The functions are stored for [0,1] only, since they are
     # either even or odd for even or odd orders, respectively. We
     # undo this here, because it simplifies the logic.
-    mknots = -knots[::-1]
     mdata = data[:,::-1].copy()
     mdata[1::2,:,0::2] *= -1
     mdata[0::2,:,1::2] *= -1
     data = numpy.concatenate((mdata, data), axis=1)
-    knots = numpy.concatenate((mknots, knots[1:]), axis=0)
+    knots = numpy.concatenate((-knots[::-1], knots[1:]), axis=0)
+    knots_corr = numpy.concatenate((-knots_corr[::-1], knots_corr[1:]), axis=0)
+    dx = (knots[1:] - knots[:-1]) + (knots_corr[1:] - knots_corr[:-1])
 
     # Transpose following numpy polynomial convention
     data = data.transpose(2,1,0)
-    return data, knots
-
+    return data, knots, dx
 
 
 class basis(object):
@@ -211,6 +216,7 @@ class basis(object):
 
             ulx_data = f[prefix+'/ulx/data'][()] # (l, section, p)
             ulx_section_edges = f[prefix+'/ulx/section_edges'][()]
+            ulx_section_edges_corr = f[prefix+'/ulx/section_edges_corr'][()]
             assert ulx_data.shape[0] == self._dim
             assert ulx_data.shape[1] == f[prefix+'/ulx/ns'][()]
             assert ulx_data.shape[2] == f[prefix+'/ulx/np'][()]
@@ -237,7 +243,7 @@ class basis(object):
             self._np = np
 
         self._ulx_ppoly = _PiecewiseLegendrePoly(
-                *_preprocess_irdata(ulx_data, ulx_section_edges))
+                *_preprocess_irdata(ulx_data, ulx_section_edges, ulx_section_edges_corr))
         self._vly_ppoly = _PiecewiseLegendrePoly(
                 *_preprocess_irdata(vly_data, vly_section_edges))
 
