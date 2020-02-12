@@ -12,9 +12,11 @@ from mpmath import mp, mpf
 
 mp.dps = 30
 
-def _check_type(obj, types):
-    if isinstance(obj, type):
-        raise RuntimeError("Passed the argument is type of" + str(type(obj)) + ", but expected to be one of " + " ".join(map(str, types)))
+def _check_type(obj, *types):
+    if not isinstance(obj, types):
+        raise RuntimeError(
+                "Passed the argument is type of %s, but expected one of %s"
+                % (type(obj), str(types)))
 
 def _mpmath_op(array, func):
     func_v = numpy.vectorize(func)
