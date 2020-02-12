@@ -31,8 +31,7 @@ def _composite_leggauss(deg, section_edges):
 
 class transformer(object):
     def __init__(self, basis, beta):
-        section_edges_positive_half = numpy.array(basis.section_edges_x)
-        section_edges = numpy.setxor1d(section_edges_positive_half, -section_edges_positive_half)
+        section_edges = basis.section_edges_x
         self._dim = basis.dim()
         self._beta = beta
         self._x, self._w = _composite_leggauss(24, section_edges)

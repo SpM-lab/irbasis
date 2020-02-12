@@ -12,9 +12,11 @@ from mpmath import mp, mpf
 
 mp.dps = 30
 
-def _check_type(obj, types):
-    if isinstance(obj, type):
-        raise RuntimeError("Passed the argument is type of" + str(type(obj)) + ", but expected to be one of " + " ".join(map(str, types)))
+def _check_type(obj, *types):
+    if not isinstance(obj, types):
+        raise RuntimeError(
+                "Passed the argument is type of %s, but expected one of %s"
+                % (type(obj), str(types)))
 
 def _mpmath_op(array, func):
     func_v = numpy.vectorize(func)
@@ -120,7 +122,7 @@ class _PiecewiseLegendrePoly:
         knots = numpy.array(knots)
         polyorder, nsegments = data.shape[:2]
         if knots.shape != (nsegments+1,):
-            raise ValueError("Invalid knost array")
+            raise ValueError("Invalid knots array")
         if (numpy.diff(knots) < 0).any():
             raise ValueError("Knots must be monotonically increasing")
 
@@ -146,10 +148,20 @@ class _PiecewiseLegendrePoly:
         xtilde *= self._inv_xs[i]
         return i, xtilde
 
-    def __call__(self, x, l=Ellipsis):
+    def __call__(self, x, l=None):
         """Evaluate polynomial at position x"""
-        i, xtilde = self._split(x)
-        res = legval(xtilde, self.data[:,i,l], tensor=False)
+        i, xtilde = self._split(numpy.asarray(x))
+
+        if l is None:
+            # Evaluate for all values of l.  xtilde and data array must be
+            # broadcast'able against each other, so we append a dimension here
+            xtilde = xtilde[(slice(None),) * xtilde.ndim + (None,)]
+            data = self.data[:,i,:]
+        else:
+            numpy.broadcast(xtilde, l)
+            data = self.data[:,i,l]
+
+        res = legval(xtilde, data, tensor=False)
         res *= self._norm[i]
         return res
 
@@ -157,7 +169,7 @@ class _PiecewiseLegendrePoly:
         """Get polynomial for the n'th derivative"""
         ddata = legder(self.data, n)
         scale = self._inv_xs ** n
-        ddata *= scale[(slice(None),) + (None,) * (ddata.ndim-2)]
+        ddata *= scale[None, :, None]
         return _PiecewiseLegendrePoly(ddata, self.knots)
 
 
@@ -197,25 +209,27 @@ class basis(object):
 
             self._sl = f[prefix+'/sl'][()]
 
-            self._ulx_data = f[prefix+'/ulx/data'][()] # (l, section, p)
-            #self._ulx_data_mp = _load_mp_array(f, prefix + '/ulx/data')  # (l, section, p)
+            ulx_data = f[prefix+'/ulx/data'][()] # (l, section, p)
+            ulx_section_edges = f[prefix+'/ulx/section_edges'][()]
+            assert ulx_data.shape[0] == self._dim
+            assert ulx_data.shape[1] == f[prefix+'/ulx/ns'][()]
+            assert ulx_data.shape[2] == f[prefix+'/ulx/np'][()]
 
-            self._ulx_data_for_vec = self._ulx_data.transpose((1, 2, 0)) # (section, p, l)
+            #self._ulx_data_mp = _load_mp_array(f, prefix + '/ulx/data')  # (l, section, p)
+            # TODO: remove once tnl is refactored.
+            self._ulx_data = ulx_data
             self._ulx_ref_max = f[prefix+'/ulx/ref/max'][()]
             self._ulx_ref_data = f[prefix+'/ulx/ref/data'][()]
-            self._ulx_section_edges = f[prefix+'/ulx/section_edges'][()]
             self._ulx_section_edges_mp = _load_mp_array(f, prefix + '/ulx/section_edges')
-            assert self._ulx_data.shape[0] == self._dim
-            assert self._ulx_data.shape[1] == f[prefix+'/ulx/ns'][()]
-            assert self._ulx_data.shape[2] == f[prefix+'/ulx/np'][()]
-            
-            self._vly_data = f[prefix+'/vly/data'][()]
+
+            vly_data = f[prefix+'/vly/data'][()]
+            vly_section_edges = f[prefix+'/vly/section_edges'][()]
+            assert vly_data.shape[0] == self._dim
+            assert vly_data.shape[1] == f[prefix+'/vly/ns'][()]
+            assert vly_data.shape[2] == f[prefix+'/vly/np'][()]
+
             self._vly_ref_max = f[prefix+'/vly/ref/max'][()]
             self._vly_ref_data = f[prefix+'/vly/ref/data'][()]
-            self._vly_section_edges = f[prefix+'/vly/section_edges'][()]
-            assert self._vly_data.shape[0] == self._dim
-            assert self._vly_data.shape[1] == f[prefix+'/vly/ns'][()]
-            assert self._vly_data.shape[2] == f[prefix+'/vly/np'][()]
 
             assert f[prefix+'/ulx/np'][()] == f[prefix+'/vly/np'][()]
 
@@ -223,9 +237,9 @@ class basis(object):
             self._np = np
 
         self._ulx_ppoly = _PiecewiseLegendrePoly(
-                *_preprocess_irdata(self._ulx_data, self._ulx_section_edges))
+                *_preprocess_irdata(ulx_data, ulx_section_edges))
         self._vly_ppoly = _PiecewiseLegendrePoly(
-                *_preprocess_irdata(self._vly_data, self._vly_section_edges))
+                *_preprocess_irdata(vly_data, vly_section_edges))
 
         self._norm_coeff = numpy.sqrt(numpy.arange(np) + 0.5)
         self._norm_coeff_mp = numpy.array([mpmath.sqrt(n + mpmath.mpf('0.5')) for n in numpy.arange(np)], dtype=mpf)
@@ -298,7 +312,6 @@ class basis(object):
         ulx : float
             value of basis function u_l(x)
         """
-        if l is None: l = Ellipsis
         return self._ulx_ppoly(x,l)
 
     def d_ulx(self, l, x, order, section=None):
@@ -322,7 +335,6 @@ class basis(object):
             (higher-order) derivative of u_l(x)
 
         """
-        if l is None: l = Ellipsis
         return self._ulx_ppoly.deriv(order)(x,l)
 
     def vly(self, l, y):
@@ -341,7 +353,6 @@ class basis(object):
         vly : float
             value of basis function v_l(y)
         """
-        if l is None: l = Ellipsis
         return self._vly_ppoly(y,l)
 
     def d_vly(self, l, y, order):
@@ -365,7 +376,6 @@ class basis(object):
             (higher-order) derivative of v_l(y)
 
         """
-        if l is None: l = Ellipsis
         return self._vly_ppoly.deriv(order)(y,l)
 
     def compute_unl(self, n):
@@ -435,7 +445,7 @@ class basis(object):
         num_n = len(w_vec)
 
         tilde_unl = numpy.zeros((num_n, self._dim), dtype=complex)
-        for s in range(self.num_sections_x()):
+        for s in range(self.num_sections_x() // 2):
             xs = self._ulx_section_edges_mp[s]
             xsp = self._ulx_section_edges_mp[s+1]
             dx = xsp - xs
@@ -475,7 +485,7 @@ class basis(object):
         -------
         num_sections_x : int
         """
-        return self._ulx_data.shape[1]
+        return self._ulx_ppoly.nsegments
 
     @property
     def section_edges_x(self):
@@ -486,7 +496,7 @@ class basis(object):
         -------
         section_edges_x : 1D ndarray of float
         """
-        return self._ulx_section_edges
+        return self._ulx_ppoly.knots
 
     def num_sections_y(self):
         """
@@ -496,7 +506,7 @@ class basis(object):
         -------
         num_sections_y : int
         """
-        return self._vly_data.shape[1]
+        return self._vly_ppoly.nsegments
 
     @property
     def section_edges_y(self):
@@ -507,7 +517,7 @@ class basis(object):
         -------
         section_edges_y : 1D ndarray of float
         """
-        return self._vly_section_edges
+        return self._vly_ppoly.knots
 
     def _check_ulx(self):
         ulx_max = self._ulx_ref_max[2]
