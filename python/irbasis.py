@@ -384,6 +384,16 @@ class basis(object):
         """
         return self._vly_ppoly.deriv(order)(y,l)
 
+    def _compute_unl_alt(self, n):
+        n = numpy.asarray(n)
+        if not numpy.issubdtype(n.dtype, numpy.integer):
+            RuntimeError("n must be integer")
+
+        zeta = 1 if self._statistics == 'F' else 0
+        wn_flat = 2 * n.ravel() + zeta
+        result_flat = _compute_unl(self._ulx_ppoly, wn_flat)
+        return result_flat.reshape(n.shape + (self._dim,))
+
     def compute_unl(self, n):
         """
         Compute transformation matrix from IR to Matsubara frequencies
@@ -540,6 +550,79 @@ class basis(object):
 
     def _get_d_vly_ref(self):
         return self._vly_ref_data
+
+
+def _imag_power(n):
+    """Imaginary unit raised to an integer power without numerical error"""
+    n = numpy.asarray(n)
+    if not numpy.issubdtype(n.dtype, numpy.integer):
+        raise ValueError("expecting set of integers here")
+    cycle = numpy.array([1, 0+1j, -1, 0-1j], complex)
+    return cycle[n % 4]
+
+
+def _get_tnl(l, w):
+    r"""Fourier integral of the l-th Legendre polynomial:
+
+        T_l(w) = \int_{-1}^1 dx \exp(iwx) P_l(x)
+    """
+    i_pow_l = _imag_power(l)
+    return 2 * numpy.where(
+        w >= 0,
+        i_pow_l * scipy.special.spherical_jn(l, w),
+        (i_pow_l * scipy.special.spherical_jn(l, -w)).conj(),
+        )
+
+
+def _shift_xmid(knots, dx):
+    r"""Return midpoint relative to the nearest integer plus a shift
+
+    Return the midpoints `xmid` of the segments, as pair `(diff, shift)`,
+    where shift is in `(0,1,-1)` and `diff` is a float such that
+    `xmid == shift + diff` to floating point accuracy.
+    """
+    dx_half = dx / 2
+    xmid_m1 = dx.cumsum() - dx_half
+    xmid_p1 = -dx[::-1].cumsum()[::-1] + dx_half
+    xmid_0 = knots[1:] - dx_half
+
+    shift = numpy.round(xmid_0).astype(int)
+    diff = numpy.choose(shift+1, (xmid_m1, xmid_0, xmid_p1))
+    return diff, shift
+
+
+def _phase_stable(poly, wn):
+    """Phase factor for the piecewise Legendre to Matsubara transform.
+
+    Compute the following phase factor in a stable way:
+
+        numpy.exp(1j * np.pi/2 * wn[:,None] * poly.dx.cumsum()[None,:])
+    """
+    # A naive implementation is losing precision close to x=1 and/or x=-1:
+    # there, the multiplication with `wn` results in `wn//4` almost extra turns
+    # around the unit circle.  The cosine and sines will first map those
+    # back to the interval [-pi, pi) before doing the computation, which loses
+    # digits in dx.  To avoid this, we extract the nearest integer dx.cumsum()
+    # and rewrite above expression like below.
+    #
+    # Now `wn` still results in extra revolutions, but the mapping back does
+    # not cut digits that were not there in the first place.
+    xmid_diff, extra_shift = _shift_xmid(poly.knots, poly.dx)
+    phase_shifted = numpy.exp(1j * numpy.pi/2 * wn[None,:] * xmid_diff[:,None])
+    corr = _imag_power((extra_shift[:,None] + 1) * wn[None,:])
+    return corr * phase_shifted
+
+
+def _compute_unl(poly, wn):
+    """Compute piecewise Legendre to Matsubara transform."""
+    dx_half = poly.dx / 2
+    data_sc = poly.data * numpy.sqrt(dx_half/2)[None,:,None]
+    p = numpy.arange(poly.polyorder)
+
+    wred = numpy.pi/2 * wn
+    phase_wi = _phase_stable(poly, wn)
+    t_pin = _get_tnl(p[:,None,None], wred[None,:] * dx_half[:,None]) * phase_wi
+    return numpy.einsum('pin,pil->nl', t_pin, data_sc)
 
 
 #
