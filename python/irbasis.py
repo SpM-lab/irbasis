@@ -303,7 +303,8 @@ class basis(object):
         """
         return self._vly_ppoly.deriv(order)(y,l)
 
-    def compute_unl(self, n):
+
+    def compute_unl(self, n, whichl=slice(None)):
         """
         Compute transformation matrix from IR to Matsubara frequencies
 
@@ -312,10 +313,14 @@ class basis(object):
         n : int or 1D ndarray of integers
             Indices of Matsubara frequncies
 
+        whichl : vector of integers or slice(None)
+            Indices of the l values
+
         Returns
         -------
         unl : 2D array of complex
-            The shape is (niw, nl) where niw is the dimension of the input "n" and nl is the dimension of the basis
+            The shape is (niw, nl) where niw is the dimension of the input "n"
+            and nl is the dimension of the basis
 
         """
         n = numpy.asarray(n)
@@ -325,7 +330,7 @@ class basis(object):
         zeta = 1 if self._statistics == 'F' else 0
         wn_flat = 2 * n.ravel() + zeta
         result_flat = _compute_unl(self._ulx_ppoly, wn_flat)
-        return result_flat.reshape(n.shape + (self._dim,))
+        return result_flat.reshape(n.shape + result_flat.shape[-1:])
 
 
     def num_sections_x(self):
@@ -448,17 +453,26 @@ def _phase_stable(poly, wn):
     return corr * phase_shifted
 
 
-def _compute_unl(poly, wn):
+def _compute_unl(poly, wn, whichl):
     """Compute piecewise Legendre to Matsubara transform."""
-    dx_half = poly.dx / 2
-    data_sc = poly.data * numpy.sqrt(dx_half/2)[None,:,None]
+    posonly = slice(poly.nsegments//2, None)
+    dx_half = poly.dx[posonly] / 2
+    data_sc = poly.data[:,posonly,whichl] * numpy.sqrt(dx_half/2)[None,:,None]
     p = numpy.arange(poly.polyorder)
 
     wred = numpy.pi/2 * wn
-    phase_wi = _phase_stable(poly, wn)
+    phase_wi = _phase_stable(poly, wn)[posonly]
     t_pin = _get_tnl(p[:,None,None], wred[None,:] * dx_half[:,None]) * phase_wi
-    return numpy.einsum('pin,pil->nl', t_pin, data_sc)
 
+    # Perform the following, but faster:
+    #   resulth = einsum('pin,pil->nl', t_pin, data_sc)
+    npi = poly.polyorder * poly.nsegments // 2
+    resulth = t_pin.reshape(npi,-1).T.dot(data_sc.reshape(npi,-1))
+
+    # We have integrated over the positive half only, so we double up here
+    zeta = wn[0] % 2
+    l = numpy.arange(poly.data.shape[-1])[whichl]
+    return numpy.where(l % 2 != zeta, 2j * resulth.imag, 2 * resulth.real)
 
 #
 # The functions below are for sparse sampling
