@@ -1,16 +1,11 @@
 from __future__ import print_function
-from builtins import range
 
 import os
 import numpy
 import h5py
-from itertools import product
 from numpy.polynomial.legendre import legval, legder
 import scipy.special
-import mpmath
-from mpmath import mp, mpf
 
-mp.dps = 30
 
 def _check_type(obj, *types):
     if not isinstance(obj, types):
@@ -18,53 +13,6 @@ def _check_type(obj, *types):
                 "Passed the argument is type of %s, but expected one of %s"
                 % (type(obj), str(types)))
 
-def _mpmath_op(array, func):
-    func_v = numpy.vectorize(func)
-    return func_v(array)
-
-def _cos(array):
-    return _mpmath_op(array, mpmath.cos)
-
-def _sin(array):
-    return _mpmath_op(array, mpmath.sin)
-
-def _mk_mp_array(x_array, y_array):
-    """
-    Construct an array of mpf from two arrays of float type
-    """
-    assert x_array.shape == y_array.shape
-
-    x = numpy.ravel(x_array)
-    y = numpy.ravel(y_array)
-
-    N = x.size
-    res = numpy.empty((N,), dtype=mpf)
-    for i in range(N):
-        res[i] = mpf(x[i]) + mpf(y[i])
-
-    return res.reshape(x_array.shape)
-
-def _load_mp_array(h5, key):
-    return _mk_mp_array(h5[key][()], h5[key + '_corr'][()])
-
-def _even_odd_sign(l):
-    return 1 if l%2==0 else -1
-
-def _compute_tnl(wvec, n_legendre):
-    num_w = len(wvec)
-    tnl = numpy.zeros((num_w, n_legendre), dtype=complex)
-    wvec_f = wvec.astype(float)
-
-    # Positive part
-    mask = wvec_f >= 0
-    for il in range(n_legendre):
-        tnl[mask, il] = 2 * (1J**il) * scipy.special.spherical_jn(il, wvec_f[mask])
-
-    mask = wvec_f < 0
-    for il in range(n_legendre):
-        tnl[mask, il] = numpy.conj(2 * (1J**il) * scipy.special.spherical_jn(il, -wvec_f[mask]))
-
-    return tnl
 
 def load(statistics, Lambda, h5file=""):
     assert statistics == "F" or statistics == "B"
@@ -84,29 +32,6 @@ def load(statistics, Lambda, h5file=""):
             raise RuntimeError("No data available!")
 
         return basis(file_name, prefix)
-
-def _compute_unl_tail(w_vec, stastics, deriv_x1):
-    sign_statistics = 1 if stastics == 'B' else -1
-
-    n_iw = len(w_vec)
-    Nl, num_deriv = deriv_x1.shape
-
-    # coeffs_nm
-    coeffs_nm = numpy.zeros((n_iw, num_deriv), dtype=complex)
-    for i_iw in range(n_iw):
-        if stastics == "B" and w_vec[i_iw] == 0:
-            continue
-        fact = 1J /w_vec[i_iw]
-        coeffs_nm[i_iw, 0] = fact
-        for m in range(1, num_deriv):
-            coeffs_nm[i_iw, m] = fact * coeffs_nm[i_iw, m-1]
-
-    # coeffs_lm
-    coeffs_lm = numpy.zeros((Nl, num_deriv))
-    for l, m in product(range(Nl), range(num_deriv)):
-        coeffs_lm[l, m] = (1 - sign_statistics * _even_odd_sign(l+m)) * deriv_x1[l, m]
-
-    return -(sign_statistics/numpy.sqrt(2.0)) * numpy.einsum('ij,kj->ik', coeffs_nm, coeffs_lm)
 
 
 class _PiecewiseLegendrePoly:
@@ -221,12 +146,9 @@ class basis(object):
             assert ulx_data.shape[1] == f[prefix+'/ulx/ns'][()]
             assert ulx_data.shape[2] == f[prefix+'/ulx/np'][()]
 
-            #self._ulx_data_mp = _load_mp_array(f, prefix + '/ulx/data')  # (l, section, p)
-            # TODO: remove once tnl is refactored.
             self._ulx_data = ulx_data
             self._ulx_ref_max = f[prefix+'/ulx/ref/max'][()]
             self._ulx_ref_data = f[prefix+'/ulx/ref/data'][()]
-            self._ulx_section_edges_mp = _load_mp_array(f, prefix + '/ulx/section_edges')
 
             vly_data = f[prefix+'/vly/data'][()]
             vly_section_edges = f[prefix+'/vly/section_edges'][()]
@@ -246,9 +168,6 @@ class basis(object):
                 *_preprocess_irdata(ulx_data, ulx_section_edges, ulx_section_edges_corr))
         self._vly_ppoly = _PiecewiseLegendrePoly(
                 *_preprocess_irdata(vly_data, vly_section_edges))
-
-        self._norm_coeff = numpy.sqrt(numpy.arange(np) + 0.5)
-        self._norm_coeff_mp = numpy.array([mpmath.sqrt(n + mpmath.mpf('0.5')) for n in numpy.arange(np)], dtype=mpf)
 
     @property
     def Lambda(self):
@@ -384,16 +303,6 @@ class basis(object):
         """
         return self._vly_ppoly.deriv(order)(y,l)
 
-    def _compute_unl_alt(self, n):
-        n = numpy.asarray(n)
-        if not numpy.issubdtype(n.dtype, numpy.integer):
-            RuntimeError("n must be integer")
-
-        zeta = 1 if self._statistics == 'F' else 0
-        wn_flat = 2 * n.ravel() + zeta
-        result_flat = _compute_unl(self._ulx_ppoly, wn_flat)
-        return result_flat.reshape(n.shape + (self._dim,))
-
     def compute_unl(self, n):
         """
         Compute transformation matrix from IR to Matsubara frequencies
@@ -409,88 +318,14 @@ class basis(object):
             The shape is (niw, nl) where niw is the dimension of the input "n" and nl is the dimension of the basis
 
         """
-        from mpmath import mpf, pi
+        n = numpy.asarray(n)
+        if not numpy.issubdtype(n.dtype, numpy.integer):
+            RuntimeError("n must be integer")
 
-        if isinstance(n, int):
-            num_n = 1
-            o_vec = 2*numpy.array([n], dtype=mpf)
-        elif (isinstance(n, numpy.ndarray) and numpy.issubdtype(n.dtype, numpy.integer)) or (isinstance(n, list) and numpy.all([type(e) == int for e in n])):
-            num_n = len(n)
-            o_vec = 2*numpy.array(n, dtype=mpf)
-        else:
-            raise RuntimeError("n is not an integer, list or a numpy array")
-
-        if self._statistics == 'F':
-            o_vec += 1
-
-        w_vec = (pi * o_vec)/2
-
-        num_deriv = self._ulx_data.shape[2]
-
-        # Compute tail
-        replaced_with_tail = numpy.zeros((num_n, self.dim()), dtype=int)
-        deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
-        for o in range(num_deriv):
-            deriv_x1[:,o] = self.d_ulx(None, 1.0, o)
-        unl_tail = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1)
-        unl_tail_without_last_two = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1[:, :-2])
-        for i in range(len(n)):
-            if self._statistics == 'B' and n[i] == 0:
-                continue
-            for l in range(self.dim()):
-                if numpy.abs((unl_tail[i, l] - unl_tail_without_last_two[i, l])/unl_tail[i, l]) < 1e-12:
-                    replaced_with_tail[i, l] = 1
-
-        unl = self._compute_tilde_unl_fast(w_vec)
-
-        sign_shift = 1 if self._statistics == 'F' else 0
-        for l in range(self.dim()):
-            if (l + sign_shift) % 2 == 1:
-                unl[:, l] = 2J * unl[:, l].imag
-            else:
-                unl[:, l] = 2 * unl[:, l].real
-
-        # Overwrite by tail
-        for i, l in product(range(len(n)), range(self.dim())):
-            if replaced_with_tail[i, l] == 1:
-                unl[i, l] = unl_tail[i, l]
-
-        return unl
-
-    def _compute_tilde_unl_fast(self, w_vec):
-        num_n = len(w_vec)
-
-        tilde_unl = numpy.zeros((num_n, self._dim), dtype=complex)
-        for s in range(self.num_sections_x() // 2):
-            xs = self._ulx_section_edges_mp[s]
-            xsp = self._ulx_section_edges_mp[s+1]
-            dx = xsp - xs
-            xmid = (xsp + xs)/2
-
-            dx_f = float(dx)
-
-            coeffs_lp = self._ulx_data[:, s, :] * numpy.sqrt(dx_f)/2
-
-            phase = w_vec * (xmid+1)
-            exp_n = _cos(phase) + mpmath.j * _sin(phase)
-            tnp = _compute_tnl((dx * w_vec/2).astype(float), self._np)
-
-            # n, np -> np
-            # O(Nw * Np)
-            tmp_np = exp_n[:, None].astype(complex) * tnp.astype(complex)
-
-            assert tmp_np.dtype == complex
-
-            # lp, p -> lp
-            # O(Nl * Np)
-            tmp_lp = coeffs_lp * self._norm_coeff[None, :]
-
-            assert tmp_lp.dtype == float
-
-            # O(Nw * Nl * Np)
-            tilde_unl += numpy.tensordot(tmp_np, tmp_lp, axes=[[1], [1]])
-
-        return tilde_unl
+        zeta = 1 if self._statistics == 'F' else 0
+        wn_flat = 2 * n.ravel() + zeta
+        result_flat = _compute_unl(self._ulx_ppoly, wn_flat)
+        return result_flat.reshape(n.shape + (self._dim,))
 
 
     def num_sections_x(self):

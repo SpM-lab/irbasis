@@ -2,4 +2,3 @@ numpy
 scipy
 future
 h5py
-mpmath
