@@ -304,7 +304,7 @@ class basis(object):
         return self._vly_ppoly.deriv(order)(y,l)
 
 
-    def compute_unl(self, n, whichl=slice(None)):
+    def compute_unl(self, n, whichl=None):
         """
         Compute transformation matrix from IR to Matsubara frequencies
 
@@ -313,7 +313,7 @@ class basis(object):
         n : int or 1D ndarray of integers
             Indices of Matsubara frequncies
 
-        whichl : vector of integers or slice(None)
+        whichl : vector of integers or None
             Indices of the l values
 
         Returns
@@ -326,10 +326,14 @@ class basis(object):
         n = numpy.asarray(n)
         if not numpy.issubdtype(n.dtype, numpy.integer):
             RuntimeError("n must be integer")
+        if whichl is None:
+            whichl = slice(None)
+        else:
+            whichl = numpy.ravel(whichl)
 
         zeta = 1 if self._statistics == 'F' else 0
         wn_flat = 2 * n.ravel() + zeta
-        result_flat = _compute_unl(self._ulx_ppoly, wn_flat)
+        result_flat = _compute_unl(self._ulx_ppoly, wn_flat, whichl)
         return result_flat.reshape(n.shape + result_flat.shape[-1:])
 
 
@@ -566,21 +570,19 @@ def _start_guesses(n=1000):
     return x
 
 
-def _get_unl_real(basis_xy, x):
+def _get_unl_real(basis_xy, x, l):
     "Return highest-order basis function on the Matsubara axis"
-    unl = basis_xy.compute_unl(x)
+    unl = basis_xy.compute_unl(x, l)
     result = numpy.zeros(unl.shape, float)
 
     # Purely real functions
-    real_loc = 1 if basis_xy.statistics == 'F' else 0
-    assert numpy.allclose(unl[:, real_loc::2].imag, 0)
-    result[:, real_loc::2] = unl[:, real_loc::2].real
-
-    # Purely imaginary functions
-    imag_loc = 1 - real_loc
-    assert numpy.allclose(unl[:, imag_loc::2].real, 0)
-    result[:, imag_loc::2] = unl[:, imag_loc::2].imag
-    return result
+    zeta = 1 if basis_xy.statistics == 'F' else 0
+    if l % 2 == zeta:
+        assert numpy.allclose(unl.imag, 0)
+        return unl.real
+    else:
+        assert numpy.allclose(unl.real, 0)
+        return unl.imag
 
 
 def _sampling_points(fn):
@@ -613,7 +615,7 @@ def _get_mats_sampling(basis_xy, lmax=None):
         lmax = basis_xy.dim()-1
 
     x = _start_guesses()
-    y = _get_unl_real(basis_xy, x)[:,lmax]
+    y = _get_unl_real(basis_xy, x, lmax)
     x_idx = _sampling_points(y)
 
     sample = x[x_idx]
