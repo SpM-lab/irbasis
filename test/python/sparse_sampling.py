@@ -20,6 +20,8 @@ class TestMethods(unittest.TestCase):
             dim = b.dim()
             whichl = dim - 1
             sp = irbasis.sampling_points_matsubara(b, whichl)
+            sp2 = b.sampling_points_matsubara(whichl)
+            assert numpy.all(sp==sp2)
             if stat == 'F':
                 assert numpy.all([-s-1 in sp for s in sp])
             elif stat in ['B']:
@@ -41,6 +43,8 @@ class TestMethods(unittest.TestCase):
             dim = b.dim()
             whichl = dim - 1
             sp = irbasis.sampling_points_x(b, whichl)
+            sp2 = b.sampling_points_x(whichl)
+            assert numpy.all(sp==sp2)
             assert len(sp) == whichl+1
             uxl = numpy.array([b.ulx(l, x) for l in range(dim) for x in sp]).reshape((dim, dim))
             U, S, Vh = scipy.linalg.svd(uxl, full_matrices=False)
@@ -56,6 +60,8 @@ class TestMethods(unittest.TestCase):
             dim = b.dim()
             whichl = dim - 1
             sp = irbasis.sampling_points_y(b, whichl)
+            sp2 = b.sampling_points_y(whichl)
+            assert numpy.all(sp==sp2)
             #print(len(sp), whichl)
             #print(sp)
             assert len(sp) == whichl+1

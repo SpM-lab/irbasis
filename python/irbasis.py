@@ -390,6 +390,64 @@ class basis(object):
         """
         return self._vly_ppoly.knots
 
+    def sampling_points_x(self, whichl):
+        """
+        Computes "optimal" sampling points in x space for given basis
+    
+        Parameters
+        ----------
+        b :
+            basis object
+        whichl: int
+            Index of reference basis function "l"
+    
+        Returns
+        -------
+        sampling_points: 1D array of float
+            sampling points in x space
+        """
+
+        return sampling_points_x(self, whichl)
+
+    def sampling_points_y(self, whichl):
+        """
+        Computes "optimal" sampling points in y space for given basis
+    
+        Parameters
+        ----------
+        b :
+            basis object
+        whichl: int
+            Index of reference basis function "l"
+    
+        Returns
+        -------
+        sampling_points: 1D array of float
+            sampling points in y space
+        """
+
+        return sampling_points_y(self, whichl)
+
+    def sampling_points_matsubara(self, whichl):
+       """
+       Computes "optimal" sampling points in Matsubara domain for given basis
+   
+       Parameters
+       ----------
+       b :
+           basis object
+       whichl: int
+           Index of reference basis function "l"
+   
+       Returns
+       -------
+       sampling_points: 1D array of int
+           sampling points in Matsubara domain
+   
+       """
+
+       return sampling_points_matsubara(self, whichl)
+   
     def _check_ulx(self):
         ulx_max = self._ulx_ref_max[2]
         ulx_ref = numpy.array([ (_data[0], _data[1], abs(self.ulx(int(_data[0]-1), _data[1])-_data[3])/ulx_max ) for _data in self._ulx_ref_data[self._ulx_ref_data[:,2]==0]])
