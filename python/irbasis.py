@@ -1,16 +1,11 @@
 from __future__ import print_function
-from builtins import range
 
 import os
 import numpy
 import h5py
-from itertools import product
 from numpy.polynomial.legendre import legval, legder
 import scipy.special
-import mpmath
-from mpmath import mp, mpf
 
-mp.dps = 30
 
 def _check_type(obj, *types):
     if not isinstance(obj, types):
@@ -18,53 +13,6 @@ def _check_type(obj, *types):
                 "Passed the argument is type of %s, but expected one of %s"
                 % (type(obj), str(types)))
 
-def _mpmath_op(array, func):
-    func_v = numpy.vectorize(func)
-    return func_v(array)
-
-def _cos(array):
-    return _mpmath_op(array, mpmath.cos)
-
-def _sin(array):
-    return _mpmath_op(array, mpmath.sin)
-
-def _mk_mp_array(x_array, y_array):
-    """
-    Construct an array of mpf from two arrays of float type
-    """
-    assert x_array.shape == y_array.shape
-
-    x = numpy.ravel(x_array)
-    y = numpy.ravel(y_array)
-
-    N = x.size
-    res = numpy.empty((N,), dtype=mpf)
-    for i in range(N):
-        res[i] = mpf(x[i]) + mpf(y[i])
-
-    return res.reshape(x_array.shape)
-
-def _load_mp_array(h5, key):
-    return _mk_mp_array(h5[key][()], h5[key + '_corr'][()])
-
-def _even_odd_sign(l):
-    return 1 if l%2==0 else -1
-
-def _compute_tnl(wvec, n_legendre):
-    num_w = len(wvec)
-    tnl = numpy.zeros((num_w, n_legendre), dtype=complex)
-    wvec_f = wvec.astype(float)
-
-    # Positive part
-    mask = wvec_f >= 0
-    for il in range(n_legendre):
-        tnl[mask, il] = 2 * (1J**il) * scipy.special.spherical_jn(il, wvec_f[mask])
-
-    mask = wvec_f < 0
-    for il in range(n_legendre):
-        tnl[mask, il] = numpy.conj(2 * (1J**il) * scipy.special.spherical_jn(il, -wvec_f[mask]))
-
-    return tnl
 
 def load(statistics, Lambda, h5file=""):
     assert statistics == "F" or statistics == "B"
@@ -85,29 +33,6 @@ def load(statistics, Lambda, h5file=""):
 
         return basis(file_name, prefix)
 
-def _compute_unl_tail(w_vec, stastics, deriv_x1):
-    sign_statistics = 1 if stastics == 'B' else -1
-
-    n_iw = len(w_vec)
-    Nl, num_deriv = deriv_x1.shape
-
-    # coeffs_nm
-    coeffs_nm = numpy.zeros((n_iw, num_deriv), dtype=complex)
-    for i_iw in range(n_iw):
-        if stastics == "B" and w_vec[i_iw] == 0:
-            continue
-        fact = 1J /w_vec[i_iw]
-        coeffs_nm[i_iw, 0] = fact
-        for m in range(1, num_deriv):
-            coeffs_nm[i_iw, m] = fact * coeffs_nm[i_iw, m-1]
-
-    # coeffs_lm
-    coeffs_lm = numpy.zeros((Nl, num_deriv))
-    for l, m in product(range(Nl), range(num_deriv)):
-        coeffs_lm[l, m] = (1 - sign_statistics * _even_odd_sign(l+m)) * deriv_x1[l, m]
-
-    return -(sign_statistics/numpy.sqrt(2.0)) * numpy.einsum('ij,kj->ik', coeffs_nm, coeffs_lm)
-
 
 class _PiecewiseLegendrePoly:
     """Piecewise Legendre polynomial.
@@ -116,7 +41,7 @@ class _PiecewiseLegendrePoly:
     intervals `S[i] = [a[i], a[i+1]]`, where on each interval the function
     is expanded in scaled Legendre polynomials.
     """
-    def __init__(self, data, knots):
+    def __init__(self, data, knots, dx):
         """Piecewise Legendre polynomial"""
         data = numpy.array(data)
         knots = numpy.array(knots)
@@ -125,6 +50,8 @@ class _PiecewiseLegendrePoly:
             raise ValueError("Invalid knots array")
         if (numpy.diff(knots) < 0).any():
             raise ValueError("Knots must be monotonically increasing")
+        if not numpy.allclose(dx, knots[1:] - knots[:-1]):
+            raise ValueError("dx must work with knots")
 
         self.nsegments = nsegments
         self.polyorder = polyorder
@@ -132,9 +59,10 @@ class _PiecewiseLegendrePoly:
         self.xmax = knots[-1]
 
         self.knots = knots
+        self.dx = dx
         self.data = data
         self._xm = .5 * (knots[1:] + knots[:-1])
-        self._inv_xs = 2 / (knots[1:] - knots[:-1])
+        self._inv_xs = 2/dx
         self._norm = numpy.sqrt(self._inv_xs)
 
     def _split(self, x):
@@ -170,15 +98,17 @@ class _PiecewiseLegendrePoly:
         ddata = legder(self.data, n)
         scale = self._inv_xs ** n
         ddata *= scale[None, :, None]
-        return _PiecewiseLegendrePoly(ddata, self.knots)
+        return _PiecewiseLegendrePoly(ddata, self.knots, self.dx)
 
 
-def _preprocess_irdata(data, knots):
+def _preprocess_irdata(data, knots, knots_corr=None):
     """Perform preprocessing of IR data"""
     data = numpy.array(data)
     dim, nsegments, polyorder = data.shape
+    if knots_corr is None:
+        knots_corr = numpy.zeros_like(knots)
 
-    # First, the basis is given by *normalized* Legendre function
+    # First, the basis is given by *normalized* Legendre function,
     # so we have to undo the normalization here:
     norm = numpy.sqrt(numpy.arange(polyorder) + 0.5)
     data *= norm
@@ -186,17 +116,17 @@ def _preprocess_irdata(data, knots):
     # The functions are stored for [0,1] only, since they are
     # either even or odd for even or odd orders, respectively. We
     # undo this here, because it simplifies the logic.
-    mknots = -knots[::-1]
     mdata = data[:,::-1].copy()
     mdata[1::2,:,0::2] *= -1
     mdata[0::2,:,1::2] *= -1
     data = numpy.concatenate((mdata, data), axis=1)
-    knots = numpy.concatenate((mknots, knots[1:]), axis=0)
+    knots = numpy.concatenate((-knots[::-1], knots[1:]), axis=0)
+    knots_corr = numpy.concatenate((-knots_corr[::-1], knots_corr[1:]), axis=0)
+    dx = (knots[1:] - knots[:-1]) + (knots_corr[1:] - knots_corr[:-1])
 
     # Transpose following numpy polynomial convention
     data = data.transpose(2,1,0)
-    return data, knots
-
+    return data, knots, dx
 
 
 class basis(object):
@@ -211,16 +141,10 @@ class basis(object):
 
             ulx_data = f[prefix+'/ulx/data'][()] # (l, section, p)
             ulx_section_edges = f[prefix+'/ulx/section_edges'][()]
+            ulx_section_edges_corr = f[prefix+'/ulx/section_edges_corr'][()]
             assert ulx_data.shape[0] == self._dim
             assert ulx_data.shape[1] == f[prefix+'/ulx/ns'][()]
             assert ulx_data.shape[2] == f[prefix+'/ulx/np'][()]
-
-            #self._ulx_data_mp = _load_mp_array(f, prefix + '/ulx/data')  # (l, section, p)
-            # TODO: remove once tnl is refactored.
-            self._ulx_data = ulx_data
-            self._ulx_ref_max = f[prefix+'/ulx/ref/max'][()]
-            self._ulx_ref_data = f[prefix+'/ulx/ref/data'][()]
-            self._ulx_section_edges_mp = _load_mp_array(f, prefix + '/ulx/section_edges')
 
             vly_data = f[prefix+'/vly/data'][()]
             vly_section_edges = f[prefix+'/vly/section_edges'][()]
@@ -228,6 +152,10 @@ class basis(object):
             assert vly_data.shape[1] == f[prefix+'/vly/ns'][()]
             assert vly_data.shape[2] == f[prefix+'/vly/np'][()]
 
+            # Reference data:
+            # XXX: shall we move this to the tests?
+            self._ulx_ref_max = f[prefix+'/ulx/ref/max'][()]
+            self._ulx_ref_data = f[prefix+'/ulx/ref/data'][()]
             self._vly_ref_max = f[prefix+'/vly/ref/max'][()]
             self._vly_ref_data = f[prefix+'/vly/ref/data'][()]
 
@@ -237,12 +165,13 @@ class basis(object):
             self._np = np
 
         self._ulx_ppoly = _PiecewiseLegendrePoly(
-                *_preprocess_irdata(ulx_data, ulx_section_edges))
+                *_preprocess_irdata(ulx_data, ulx_section_edges, ulx_section_edges_corr))
         self._vly_ppoly = _PiecewiseLegendrePoly(
                 *_preprocess_irdata(vly_data, vly_section_edges))
 
-        self._norm_coeff = numpy.sqrt(numpy.arange(np) + 0.5)
-        self._norm_coeff_mp = numpy.array([mpmath.sqrt(n + mpmath.mpf('0.5')) for n in numpy.arange(np)], dtype=mpf)
+        deriv_x1 = numpy.asarray(list(_derivs(self._ulx_ppoly, x=1)))
+        moments = _power_moments(self._statistics, deriv_x1)
+        self._ulw_model = _PowerModel(self._statistics, moments)
 
     @property
     def Lambda(self):
@@ -378,7 +307,8 @@ class basis(object):
         """
         return self._vly_ppoly.deriv(order)(y,l)
 
-    def compute_unl(self, n):
+
+    def compute_unl(self, n, whichl=None):
         """
         Compute transformation matrix from IR to Matsubara frequencies
 
@@ -387,94 +317,35 @@ class basis(object):
         n : int or 1D ndarray of integers
             Indices of Matsubara frequncies
 
+        whichl : vector of integers or None
+            Indices of the l values
+
         Returns
         -------
         unl : 2D array of complex
-            The shape is (niw, nl) where niw is the dimension of the input "n" and nl is the dimension of the basis
+            The shape is (niw, nl) where niw is the dimension of the input "n"
+            and nl is the dimension of the basis
 
         """
-        from mpmath import mpf, pi
-
-        if isinstance(n, int):
-            num_n = 1
-            o_vec = 2*numpy.array([n], dtype=mpf)
-        elif (isinstance(n, numpy.ndarray) and numpy.issubdtype(n.dtype, numpy.integer)) or (isinstance(n, list) and numpy.all([type(e) == int for e in n])):
-            num_n = len(n)
-            o_vec = 2*numpy.array(n, dtype=mpf)
+        n = numpy.asarray(n)
+        if not numpy.issubdtype(n.dtype, numpy.integer):
+            RuntimeError("n must be integer")
+        if whichl is None:
+            whichl = slice(None)
         else:
-            raise RuntimeError("n is not an integer, list or a numpy array")
+            whichl = numpy.ravel(whichl)
 
-        if self._statistics == 'F':
-            o_vec += 1
+        zeta = 1 if self._statistics == 'F' else 0
+        wn_flat = 2 * n.ravel() + zeta
 
-        w_vec = (pi * o_vec)/2
-
-        num_deriv = self._ulx_data.shape[2]
-
-        # Compute tail
-        replaced_with_tail = numpy.zeros((num_n, self.dim()), dtype=int)
-        deriv_x1 = numpy.zeros((self.dim(), num_deriv), dtype=float)
-        for o in range(num_deriv):
-            deriv_x1[:,o] = self.d_ulx(None, 1.0, o)
-        unl_tail = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1)
-        unl_tail_without_last_two = _compute_unl_tail(w_vec.astype(float), self._statistics, deriv_x1[:, :-2])
-        for i in range(len(n)):
-            if self._statistics == 'B' and n[i] == 0:
-                continue
-            for l in range(self.dim()):
-                if numpy.abs((unl_tail[i, l] - unl_tail_without_last_two[i, l])/unl_tail[i, l]) < 1e-12:
-                    replaced_with_tail[i, l] = 1
-
-        unl = self._compute_tilde_unl_fast(w_vec)
-
-        sign_shift = 1 if self._statistics == 'F' else 0
-        for l in range(self.dim()):
-            if (l + sign_shift) % 2 == 1:
-                unl[:, l] = 2J * unl[:, l].imag
-            else:
-                unl[:, l] = 2 * unl[:, l].real
-
-        # Overwrite by tail
-        for i, l in product(range(len(n)), range(self.dim())):
-            if replaced_with_tail[i, l] == 1:
-                unl[i, l] = unl_tail[i, l]
-
-        return unl
-
-    def _compute_tilde_unl_fast(self, w_vec):
-        num_n = len(w_vec)
-
-        tilde_unl = numpy.zeros((num_n, self._dim), dtype=complex)
-        for s in range(self.num_sections_x() // 2):
-            xs = self._ulx_section_edges_mp[s]
-            xsp = self._ulx_section_edges_mp[s+1]
-            dx = xsp - xs
-            xmid = (xsp + xs)/2
-
-            dx_f = float(dx)
-
-            coeffs_lp = self._ulx_data[:, s, :] * numpy.sqrt(dx_f)/2
-
-            phase = w_vec * (xmid+1)
-            exp_n = _cos(phase) + mpmath.j * _sin(phase)
-            tnp = _compute_tnl((dx * w_vec/2).astype(float), self._np)
-
-            # n, np -> np
-            # O(Nw * Np)
-            tmp_np = exp_n[:, None].astype(complex) * tnp.astype(complex)
-
-            assert tmp_np.dtype == complex
-
-            # lp, p -> lp
-            # O(Nl * Np)
-            tmp_lp = coeffs_lp * self._norm_coeff[None, :]
-
-            assert tmp_lp.dtype == float
-
-            # O(Nw * Nl * Np)
-            tilde_unl += numpy.tensordot(tmp_np, tmp_lp, axes=[[1], [1]])
-
-        return tilde_unl
+        # The radius of convergence of the asymptotic expansion is Lambda/2,
+        # so for significantly larger frequencies we use the asymptotics,
+        # since it has lower relative error.
+        cond_inner = numpy.abs(wn_flat[:,None]) < 40 * self._Lambda
+        result_inner = _compute_unl(self._ulx_ppoly, wn_flat, whichl)
+        result_asymp = self._ulw_model.giw(wn_flat)[:,whichl]
+        result_flat = numpy.where(cond_inner, result_inner, result_asymp)
+        return result_flat.reshape(n.shape + result_flat.shape[-1:])
 
 
     def num_sections_x(self):
@@ -535,6 +406,147 @@ class basis(object):
     def _get_d_vly_ref(self):
         return self._vly_ref_data
 
+
+class _PowerModel:
+    """Model from a high-frequency series expansion:
+
+        A(iw) = sum(A[n] / (iw)**(n+1) for n in range(1, N))
+
+    where `iw == 1j * pi/2 * wn` is a reduced imaginary frequency, i.e.,
+    `wn` is an odd/even number for fermionic/bosonic frequencies.
+    """
+    def __init__(self, statistics, moments):
+        """Initialize model"""
+        self.zeta = {'F': 1, 'B': 0}[statistics]
+        self.moments = numpy.asarray(moments)
+        self.nmom, self.nl = self.moments.shape
+
+    @staticmethod
+    def _inv_iw_safe(wn, result_dtype):
+        """Return inverse of frequency or zero if freqency is zero"""
+        result = numpy.zeros(wn.shape, result_dtype)
+        wn_nonzero = wn != 0
+        result[wn_nonzero] = 1/(1j * numpy.pi/2 * wn[wn_nonzero])
+        return result
+
+    def _giw_ravel(self, wn):
+        """Return model Green's function for vector of frequencies"""
+        result_dtype = numpy.result_type(1j, wn, self.moments)
+        result = numpy.zeros((wn.size, self.nl), result_dtype)
+        inv_iw = self._inv_iw_safe(wn, result_dtype)[:,None]
+        for mom in self.moments[::-1]:
+            result += mom
+            result *= inv_iw
+        return result
+
+    def giw(self, wn):
+        """Return model Green's function for reduced frequencies"""
+        wn = numpy.array(wn)
+        if (wn % 2 != self.zeta).any():
+            raise ValueError("expecting 'reduced' frequencies")
+
+        return self._giw_ravel(wn.ravel()).reshape(wn.shape + (self.nl,))
+
+
+def _derivs(ppoly, x):
+    """Evaluate polynomial and its derivatives at specific x"""
+    yield ppoly(x)
+    for _ in range(ppoly.polyorder-1):
+        ppoly = ppoly.deriv()
+        yield ppoly(x)
+
+
+def _power_moments(stat, deriv_x1):
+    """Return moments"""
+    statsign = {'F': -1, 'B': 1}[stat]
+    mmax, lmax = deriv_x1.shape
+    m = numpy.arange(mmax)[:,None]
+    l = numpy.arange(lmax)[None,:]
+    coeff_lm = ((-1.0)**(m+1) + statsign * (-1.0)**l) * deriv_x1
+    return -statsign/numpy.sqrt(2.0) * coeff_lm
+
+
+def _imag_power(n):
+    """Imaginary unit raised to an integer power without numerical error"""
+    n = numpy.asarray(n)
+    if not numpy.issubdtype(n.dtype, numpy.integer):
+        raise ValueError("expecting set of integers here")
+    cycle = numpy.array([1, 0+1j, -1, 0-1j], complex)
+    return cycle[n % 4]
+
+
+def _get_tnl(l, w):
+    r"""Fourier integral of the l-th Legendre polynomial:
+
+        T_l(w) = \int_{-1}^1 dx \exp(iwx) P_l(x)
+    """
+    i_pow_l = _imag_power(l)
+    return 2 * numpy.where(
+        w >= 0,
+        i_pow_l * scipy.special.spherical_jn(l, w),
+        (i_pow_l * scipy.special.spherical_jn(l, -w)).conj(),
+        )
+
+
+def _shift_xmid(knots, dx):
+    r"""Return midpoint relative to the nearest integer plus a shift
+
+    Return the midpoints `xmid` of the segments, as pair `(diff, shift)`,
+    where shift is in `(0,1,-1)` and `diff` is a float such that
+    `xmid == shift + diff` to floating point accuracy.
+    """
+    dx_half = dx / 2
+    xmid_m1 = dx.cumsum() - dx_half
+    xmid_p1 = -dx[::-1].cumsum()[::-1] + dx_half
+    xmid_0 = knots[1:] - dx_half
+
+    shift = numpy.round(xmid_0).astype(int)
+    diff = numpy.choose(shift+1, (xmid_m1, xmid_0, xmid_p1))
+    return diff, shift
+
+
+def _phase_stable(poly, wn):
+    """Phase factor for the piecewise Legendre to Matsubara transform.
+
+    Compute the following phase factor in a stable way:
+
+        numpy.exp(1j * numpy.pi/2 * wn[:,None] * poly.dx.cumsum()[None,:])
+    """
+    # A naive implementation is losing precision close to x=1 and/or x=-1:
+    # there, the multiplication with `wn` results in `wn//4` almost extra turns
+    # around the unit circle.  The cosine and sines will first map those
+    # back to the interval [-pi, pi) before doing the computation, which loses
+    # digits in dx.  To avoid this, we extract the nearest integer dx.cumsum()
+    # and rewrite above expression like below.
+    #
+    # Now `wn` still results in extra revolutions, but the mapping back does
+    # not cut digits that were not there in the first place.
+    xmid_diff, extra_shift = _shift_xmid(poly.knots, poly.dx)
+    phase_shifted = numpy.exp(1j * numpy.pi/2 * wn[None,:] * xmid_diff[:,None])
+    corr = _imag_power((extra_shift[:,None] + 1) * wn[None,:])
+    return corr * phase_shifted
+
+
+def _compute_unl(poly, wn, whichl):
+    """Compute piecewise Legendre to Matsubara transform."""
+    posonly = slice(poly.nsegments//2, None)
+    dx_half = poly.dx[posonly] / 2
+    data_sc = poly.data[:,posonly,whichl] * numpy.sqrt(dx_half/2)[None,:,None]
+    p = numpy.arange(poly.polyorder)
+
+    wred = numpy.pi/2 * wn
+    phase_wi = _phase_stable(poly, wn)[posonly]
+    t_pin = _get_tnl(p[:,None,None], wred[None,:] * dx_half[:,None]) * phase_wi
+
+    # Perform the following, but faster:
+    #   resulth = einsum('pin,pil->nl', t_pin, data_sc)
+    npi = poly.polyorder * poly.nsegments // 2
+    resulth = t_pin.reshape(npi,-1).T.dot(data_sc.reshape(npi,-1))
+
+    # We have integrated over the positive half only, so we double up here
+    zeta = wn[0] % 2
+    l = numpy.arange(poly.data.shape[-1])[whichl]
+    return numpy.where(l % 2 != zeta, 2j * resulth.imag, 2 * resulth.real)
 
 #
 # The functions below are for sparse sampling
@@ -628,21 +640,19 @@ def _start_guesses(n=1000):
     return x
 
 
-def _get_unl_real(basis_xy, x):
+def _get_unl_real(basis_xy, x, l):
     "Return highest-order basis function on the Matsubara axis"
-    unl = basis_xy.compute_unl(x)
+    unl = basis_xy.compute_unl(x, l)
     result = numpy.zeros(unl.shape, float)
 
     # Purely real functions
-    real_loc = 1 if basis_xy.statistics == 'F' else 0
-    assert numpy.allclose(unl[:, real_loc::2].imag, 0)
-    result[:, real_loc::2] = unl[:, real_loc::2].real
-
-    # Purely imaginary functions
-    imag_loc = 1 - real_loc
-    assert numpy.allclose(unl[:, imag_loc::2].real, 0)
-    result[:, imag_loc::2] = unl[:, imag_loc::2].imag
-    return result
+    zeta = 1 if basis_xy.statistics == 'F' else 0
+    if l % 2 == zeta:
+        assert numpy.allclose(unl.imag, 0)
+        return unl.real
+    else:
+        assert numpy.allclose(unl.real, 0)
+        return unl.imag
 
 
 def _sampling_points(fn):
@@ -675,7 +685,7 @@ def _get_mats_sampling(basis_xy, lmax=None):
         lmax = basis_xy.dim()-1
 
     x = _start_guesses()
-    y = _get_unl_real(basis_xy, x)[:,lmax]
+    y = _get_unl_real(basis_xy, x, lmax)
     x_idx = _sampling_points(y)
 
     sample = x[x_idx]

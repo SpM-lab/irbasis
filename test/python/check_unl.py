@@ -19,7 +19,8 @@ class TestMethods(unittest.TestCase):
         """
         for _lambda in [10.0, 1E+4, 1E+7]:
             for _statistics, pole in product(["f", "b"], [1.0, 0.1]):
-                print(_lambda, _statistics)
+                print("lambda = %d, stat = %s, y = %g" %
+                      (_lambda, repr(_statistics), pole))
                 prefix = "basis_"+_statistics+"-mp-Lambda"+str(_lambda)
                 basis = ir.basis("../irbasis.h5", prefix)
                 dim = basis.dim()
@@ -43,19 +44,26 @@ class TestMethods(unittest.TestCase):
                     return 1/(z - pole)
 
                 # Compute G(iwn) using unl
-                n_plt = numpy.array([-1, 0, 1, 1E+1, 1E+2, 1E+3, 1E+4, 1E+5, 1E+6, 1E+7, 1E+8, 1E+9, 1E+10, 1E+14], dtype=int)
+                n_plt = numpy.array([-1, 0, 1, 1E+1, 1E+2, 1E+3, 1E+4,
+                                     1E+5, 1E+6, 1E+7, 1E+8, 1E+9, 1E+10, 1E+14],
+                                    dtype=int)
                 Uwnl_plt =  numpy.sqrt(beta) * basis.compute_unl(n_plt)
                 Giwn_t = numpy.dot(Uwnl_plt, gl)
 
                 # Compute G(iwn) from analytic expression
                 Giwn_ref = numpy.array([G(n) for n in n_plt])
 
+                magnitude = numpy.abs(Giwn_ref).max()
+                diff = numpy.abs(Giwn_t - Giwn_ref)
+                reldiff = diff/numpy.abs(Giwn_ref)
+
                 # Absolute error must be smaller than 1e-12
-                diff = Giwn_t - Giwn_ref
-                self.assertLessEqual(numpy.amax(numpy.abs(diff)), 1e-12)
+                print ("max. absdiff = %.4g, rel = %.4g" %
+                       (diff.max()/magnitude, reldiff.max()))
+                self.assertLessEqual((diff/magnitude).max(), 5e-13)
 
                 # Relative error must be smaller than 1e-12
-                self.assertLessEqual(numpy.amax(numpy.abs(diff/Giwn_ref)), 1e-12)
+                self.assertLessEqual(numpy.amax(numpy.abs(diff/Giwn_ref)), 5e-13)
 
 
 if __name__ == '__main__':
