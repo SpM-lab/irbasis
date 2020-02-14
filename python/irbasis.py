@@ -146,16 +146,16 @@ class basis(object):
             assert ulx_data.shape[1] == f[prefix+'/ulx/ns'][()]
             assert ulx_data.shape[2] == f[prefix+'/ulx/np'][()]
 
-            self._ulx_data = ulx_data
-            self._ulx_ref_max = f[prefix+'/ulx/ref/max'][()]
-            self._ulx_ref_data = f[prefix+'/ulx/ref/data'][()]
-
             vly_data = f[prefix+'/vly/data'][()]
             vly_section_edges = f[prefix+'/vly/section_edges'][()]
             assert vly_data.shape[0] == self._dim
             assert vly_data.shape[1] == f[prefix+'/vly/ns'][()]
             assert vly_data.shape[2] == f[prefix+'/vly/np'][()]
 
+            # Reference data:
+            # XXX: shall we move this to the tests?
+            self._ulx_ref_max = f[prefix+'/ulx/ref/max'][()]
+            self._ulx_ref_data = f[prefix+'/ulx/ref/data'][()]
             self._vly_ref_max = f[prefix+'/vly/ref/max'][()]
             self._vly_ref_data = f[prefix+'/vly/ref/data'][()]
 
@@ -168,6 +168,10 @@ class basis(object):
                 *_preprocess_irdata(ulx_data, ulx_section_edges, ulx_section_edges_corr))
         self._vly_ppoly = _PiecewiseLegendrePoly(
                 *_preprocess_irdata(vly_data, vly_section_edges))
+
+        deriv_x1 = numpy.asarray(list(_derivs(self._ulx_ppoly, x=1)))
+        moments = _power_moments(self._statistics, deriv_x1)
+        self._ulw_model = _PowerModel(self._statistics, moments)
 
     @property
     def Lambda(self):
@@ -333,7 +337,14 @@ class basis(object):
 
         zeta = 1 if self._statistics == 'F' else 0
         wn_flat = 2 * n.ravel() + zeta
-        result_flat = _compute_unl(self._ulx_ppoly, wn_flat, whichl)
+
+        # The radius of convergence of the asymptotic expansion is Lambda/2,
+        # so for significantly larger frequencies we use the asymptotics,
+        # since it has lower relative error.
+        cond_inner = numpy.abs(wn_flat[:,None]) < 40 * self._Lambda
+        result_inner = _compute_unl(self._ulx_ppoly, wn_flat, whichl)
+        result_asymp = self._ulw_model.giw(wn_flat)[:,whichl]
+        result_flat = numpy.where(cond_inner, result_inner, result_asymp)
         return result_flat.reshape(n.shape + result_flat.shape[-1:])
 
 
@@ -396,6 +407,65 @@ class basis(object):
         return self._vly_ref_data
 
 
+class _PowerModel:
+    """Model from a high-frequency series expansion:
+
+        A(iw) = sum(A[n] / (iw)**(n+1) for n in range(1, N))
+
+    where `iw == 1j * pi/2 * wn` is a reduced imaginary frequency, i.e.,
+    `wn` is an odd/even number for fermionic/bosonic frequencies.
+    """
+    def __init__(self, statistics, moments):
+        """Initialize model"""
+        self.zeta = {'F': 1, 'B': 0}[statistics]
+        self.moments = numpy.asarray(moments)
+        self.nmom, self.nl = self.moments.shape
+
+    @staticmethod
+    def _inv_iw_safe(wn, result_dtype):
+        """Return inverse of frequency or zero if freqency is zero"""
+        result = numpy.zeros(wn.shape, result_dtype)
+        wn_nonzero = wn != 0
+        result[wn_nonzero] = 1/(1j * numpy.pi/2 * wn[wn_nonzero])
+        return result
+
+    def _giw_ravel(self, wn):
+        """Return model Green's function for vector of frequencies"""
+        result_dtype = numpy.result_type(1j, wn, self.moments)
+        result = numpy.zeros((wn.size, self.nl), result_dtype)
+        inv_iw = self._inv_iw_safe(wn, result_dtype)[:,None]
+        for mom in self.moments[::-1]:
+            result += mom
+            result *= inv_iw
+        return result
+
+    def giw(self, wn):
+        """Return model Green's function for reduced frequencies"""
+        wn = numpy.array(wn)
+        if (wn % 2 != self.zeta).any():
+            raise ValueError("expecting 'reduced' frequencies")
+
+        return self._giw_ravel(wn.ravel()).reshape(wn.shape + (self.nl,))
+
+
+def _derivs(ppoly, x):
+    """Evaluate polynomial and its derivatives at specific x"""
+    yield ppoly(x)
+    for _ in range(ppoly.polyorder-1):
+        ppoly = ppoly.deriv()
+        yield ppoly(x)
+
+
+def _power_moments(stat, deriv_x1):
+    """Return moments"""
+    statsign = {'F': -1, 'B': 1}[stat]
+    mmax, lmax = deriv_x1.shape
+    m = numpy.arange(mmax)[:,None]
+    l = numpy.arange(lmax)[None,:]
+    coeff_lm = ((-1.0)**(m+1) + statsign * (-1.0)**l) * deriv_x1
+    return -statsign/numpy.sqrt(2.0) * coeff_lm
+
+
 def _imag_power(n):
     """Imaginary unit raised to an integer power without numerical error"""
     n = numpy.asarray(n)
@@ -440,7 +510,7 @@ def _phase_stable(poly, wn):
 
     Compute the following phase factor in a stable way:
 
-        numpy.exp(1j * np.pi/2 * wn[:,None] * poly.dx.cumsum()[None,:])
+        numpy.exp(1j * numpy.pi/2 * wn[:,None] * poly.dx.cumsum()[None,:])
     """
     # A naive implementation is losing precision close to x=1 and/or x=-1:
     # there, the multiplication with `wn` results in `wn//4` almost extra turns

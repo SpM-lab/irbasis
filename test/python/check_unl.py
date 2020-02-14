@@ -63,7 +63,7 @@ class TestMethods(unittest.TestCase):
                 self.assertLessEqual((diff/magnitude).max(), 5e-13)
 
                 # Relative error must be smaller than 1e-12
-                #self.assertLessEqual(numpy.amax(numpy.abs(diff/Giwn_ref)), 1e-12)
+                self.assertLessEqual(numpy.amax(numpy.abs(diff/Giwn_ref)), 5e-13)
 
 
 if __name__ == '__main__':
