@@ -9,45 +9,40 @@ class TestMethods(unittest.TestCase):
 
         super(TestMethods, self).__init__(*args, **kwargs)
 
-    def test_small_lambda_f(self):
+    def test_ulx(self):
         for _lambda in [10.0, 1E+4, 1E+7]:
             prefix = "basis_f-mp-Lambda" + str(_lambda)
             rb = ir.basis("../irbasis.h5", prefix)
-            check_data_ulx = rb._check_ulx()
-            for _data in check_data_ulx:
-                self.assertLessEqual(_data[2], 1e-11)
+            d_ulx_ref = rb._get_d_ulx_ref()
+            num_ref_data = d_ulx_ref.shape[0]
+            tol = {0: 1e-10, 1: 1e-10, 2: 1e-5}
+            for i_ref_data in range(num_ref_data):
+                Nl, x, order, ref_val = d_ulx_ref[i_ref_data, :]
+                Nl = int(Nl)
+                order = int(order)
+                val = rb.d_ulx(Nl-1, x, order)
+                adiff = abs(ref_val - val)
+                rdiff = adiff / ref_val
+                print(Nl, x, order, ref_val, val, rdiff)
+                self.assertTrue(rdiff < tol[order] or adiff < tol[order])
 
-            check_data_vly = rb._check_vly()
-            for _data in check_data_vly:
-                self.assertLessEqual(_data[2], 1e-11)
-
-    def test_small_lambda_b(self):
-        for _lambda in [10.0, 1E+4, 1E+7]:
-            prefix = "basis_b-mp-Lambda" + str(_lambda)
-            rb = ir.basis("../irbasis.h5", prefix)
-            check_data_ulx = rb._check_ulx()
-            for _data in check_data_ulx:
-                self.assertLessEqual(_data[2], 1e-11)
-
-            check_data_vly = rb._check_vly()
-            for _data in check_data_vly:
-                self.assertLessEqual(_data[2], 1e-11)
-
-    def test_differential_ulx(self):
+    def test_vly(self):
         for _lambda in [10.0, 1E+4, 1E+7]:
             prefix = "basis_f-mp-Lambda" + str(_lambda)
-            rb_np8 = ir.basis("../irbasis.h5", prefix)
-            d_ulx_ref_np8 = rb_np8._get_d_ulx_ref()
-            d_ulx_ref_np8_1st = d_ulx_ref_np8[d_ulx_ref_np8[:, 2] == 1][0][3]
-            d_ulx_ref_np8_2nd = d_ulx_ref_np8[d_ulx_ref_np8[:, 2] == 2][0][3]
-            # 1-st differential
-            Nl = rb_np8.dim()
-            if Nl % 2 == 1: Nl -= 1
-            d_1st_differential = abs((d_ulx_ref_np8_1st - rb_np8.d_ulx(Nl-1, 1.0, 1)) / d_ulx_ref_np8_1st)
-            self.assertLessEqual(d_1st_differential, 1e-11)
-            # 2-nd differential
-            d_2nd_differential = abs((d_ulx_ref_np8_2nd - rb_np8.d_ulx(Nl-1, 1.0, 2)) / d_ulx_ref_np8_2nd)
-            self.assertLessEqual(d_2nd_differential, 1e-11)
+            rb = ir.basis("../irbasis.h5", prefix)
+            d_vly_ref = rb._get_d_vly_ref()
+            num_ref_data = d_vly_ref.shape[0]
+            print("Lambda ", _lambda)
+            tol = {0: 1e-10, 1: 1e-10, 2: 1e-5}
+            for i_ref_data in range(num_ref_data):
+                Nl, y, order, ref_val = d_vly_ref[i_ref_data, :]
+                Nl = int(Nl)
+                order = int(order)
+                val = rb.d_vly(Nl-1, y, order)
+                adiff = abs(ref_val - val)
+                rdiff = adiff / ref_val
+                print(Nl, y, order, ref_val, val, rdiff)
+                self.assertTrue(rdiff < tol[order] or adiff < tol[order])
 
     def test_vectorization(self):
         for _lambda in [1E+4]:
