@@ -1,1 +1,1 @@
-from .irbasis import load, basis
+from .irbasis import load, basis, sampling_points_matsubara
