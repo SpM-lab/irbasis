@@ -14,7 +14,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='irbasis',
 
-    version='2.2.1',
+    version='2.2.2',
 
     description='Python libraries for irbasis',
 
