@@ -6,6 +6,7 @@ endfunction(add_python_test)
 find_package(PythonInterp REQUIRED)
 
 configure_file(${CMAKE_SOURCE_DIR}/python/irbasis.py ${CMAKE_BINARY_DIR}/test/python COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/version ${CMAKE_BINARY_DIR}/test/python COPYONLY)
 file(GLOB_RECURSE TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
 foreach(testfile ${TEST_FILES})
     configure_file(${testfile} ${CMAKE_BINARY_DIR}/test/python COPYONLY)
