@@ -10,11 +10,14 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+# Get version string
+with open(path.join(here, 'irbasis', 'version'), encoding='ascii') as f:
+    version = f.read()
 
 setup(
     name='irbasis',
 
-    version='2.2.2',
+    version=version,
 
     description='Python libraries for irbasis',
 
@@ -59,6 +62,6 @@ setup(
     install_requires=['numpy', 'scipy', 'h5py', 'future'],
 
     package_data={
-        'irbasis': ['irbasis.h5'],
+        'irbasis': ['irbasis.h5', 'version'],
     },
 )

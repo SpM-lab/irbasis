@@ -6,6 +6,10 @@ import h5py
 from numpy.polynomial.legendre import legval, legder
 import scipy.special
 
+# Get version string
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, 'version'), 'r', encoding='ascii') as f:
+    __version__ = f.read().strip()
 
 def _check_type(obj, *types):
     if not isinstance(obj, types):
@@ -675,7 +679,7 @@ def sampling_points_y(b, whichl):
     whichl: int
         Index of reference basis function "l"
 
-    Returns
+    
     -------
     sampling_points: 1D array of float
         sampling points in y space
