@@ -23,7 +23,7 @@ public:
   refdata(
       const std::string &file_name,
       const std::string &prefix = ""
-  ) throw(std::runtime_error) {
+  ) {
     hid_t file = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
     if (file < 0) {

@@ -11,6 +11,9 @@ endfunction(add_gtest)
 find_package(HDF5 REQUIRED)
 find_package(Boost 1.54.0)
 
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+
 list(APPEND LINK_ALL ${CMAKE_THREAD_LIBS_INIT} ${HDF5_C_LIBRARIES})
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} " CACHE STRING "Linker flags for executables" FORCE)

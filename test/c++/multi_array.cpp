@@ -5,6 +5,53 @@
 
 using namespace irbasis;
 
+//#include "basis.hpp"
+//TEST(multi_array, finite_temp_basis) {
+  //double beta = 10.0;
+  //double Lambda = 10.0;
+  //IrBasis(FERMION, beta, Lambda, 50, "../irbasis.h5");
+//}
+
+TEST(multi_array, dim2_copy) {
+  int N1 = 2;
+  int N2 = 4;
+  internal::multi_array<double, 2> array2(N1, N2);
+  {
+    internal::multi_array<double, 2> array(N1, N2);
+    array.fill(1);
+    array2 = array;
+  }
+  ASSERT_EQ(array2.extent(0), N1);
+  ASSERT_EQ(array2.extent(1), N2);
+  for (int i=0; i<N1; ++i) {
+    for (int j=0; j<N2; ++j) {
+      ASSERT_EQ(array2(i,j), 1.0);
+    }
+  }
+}
+
+TEST(multi_array, dim3_copy) {
+  int N1 = 2;
+  int N2 = 4;
+  int N3 = 6;
+  internal::multi_array<double, 3> array2(N1, N2, N3);
+  {
+    internal::multi_array<double, 3> array(N1, N2, N3);
+    array.fill(1);
+    array2 = array;
+  }
+  ASSERT_EQ(array2.extent(0), N1);
+  ASSERT_EQ(array2.extent(1), N2);
+  ASSERT_EQ(array2.extent(2), N3);
+  for (int i=0; i<N1; ++i) {
+    for (int j=0; j<N2; ++j) {
+      for (int k=0; k<N3; ++k) {
+        ASSERT_EQ(array2(i,j,k), 1.0);
+      }
+    }
+  }
+}
+
 TEST(multi_array, dim2) {
   int N1 = 2;
   int N2 = 4;
